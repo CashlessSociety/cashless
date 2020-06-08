@@ -1,0 +1,406 @@
+[
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "data",
+				"type": "bytes"
+			},
+			{
+				"name": "vs",
+				"type": "uint8[2]"
+			},
+			{
+				"name": "rs",
+				"type": "bytes32[2]"
+			},
+			{
+				"name": "ss",
+				"type": "bytes32[2]"
+			}
+		],
+		"name": "dispute",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "sid",
+				"type": "bytes32"
+			},
+			{
+				"name": "receiver",
+				"type": "address"
+			},
+			{
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"name": "disputeDuration",
+				"type": "uint256"
+			},
+			{
+				"name": "vestTimestamp",
+				"type": "uint256"
+			},
+			{
+				"name": "voidTimestamp",
+				"type": "uint256"
+			},
+			{
+				"name": "nonce",
+				"type": "uint8"
+			}
+		],
+		"name": "encodeClaim",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"payable": false,
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "redeemClaim",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "data",
+				"type": "bytes"
+			},
+			{
+				"name": "isOwner",
+				"type": "bool"
+			},
+			{
+				"name": "v",
+				"type": "uint8"
+			},
+			{
+				"name": "r",
+				"type": "bytes32"
+			},
+			{
+				"name": "s",
+				"type": "bytes32"
+			}
+		],
+		"name": "verifySignedClaim",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "getClaimHash",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "withdraw",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "claimIDs",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "DOMAIN_SEPARATOR",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "claimID",
+				"type": "bytes32"
+			},
+			{
+				"name": "i",
+				"type": "uint8"
+			}
+		],
+		"name": "getClaim",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "getAdjustedClaimAmount",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "sid",
+				"type": "bytes32"
+			},
+			{
+				"name": "addr",
+				"type": "address"
+			}
+		],
+		"name": "getClaimID",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"payable": false,
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "getOwner",
+		"outputs": [
+			{
+				"name": "",
+				"type": "address"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"name": "",
+				"type": "address"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "data",
+				"type": "bytes"
+			},
+			{
+				"name": "vs",
+				"type": "uint8[2]"
+			},
+			{
+				"name": "rs",
+				"type": "bytes32[2]"
+			},
+			{
+				"name": "ss",
+				"type": "bytes32[2]"
+			}
+		],
+		"name": "settle",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "isValidClaim",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "getAllClaimIDs",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32[]"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "redeemDefault",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "getAdjustedDefaultAmount",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "getActiveClaim",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"name": "constructID",
+				"type": "bytes32"
+			}
+		],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"payable": true,
+		"stateMutability": "payable",
+		"type": "fallback"
+	}
+]
