@@ -137,6 +137,25 @@
 		"type": "function"
 	},
 	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "settled",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"constant": false,
 		"inputs": [
 			{
@@ -200,6 +219,29 @@
 			{
 				"name": "",
 				"type": "bytes"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "getSettlementTime",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"name": "",
+				"type": "uint256"
 			}
 		],
 		"payable": false,
@@ -336,17 +378,26 @@
 		"type": "function"
 	},
 	{
-		"constant": false,
+		"constant": true,
 		"inputs": [
 			{
 				"name": "claimID",
 				"type": "bytes32"
 			}
 		],
-		"name": "redeemDefault",
-		"outputs": [],
+		"name": "getSettlement",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
 		"payable": false,
-		"stateMutability": "nonpayable",
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -357,7 +408,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "getAdjustedDefaultAmount",
+		"name": "getNumClaims",
 		"outputs": [
 			{
 				"name": "",
@@ -376,7 +427,7 @@
 				"type": "bytes32"
 			}
 		],
-		"name": "getActiveClaim",
+		"name": "getLatestClaim",
 		"outputs": [
 			{
 				"name": "",

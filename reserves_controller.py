@@ -1,6 +1,6 @@
 from py_eth_sig_utils import signing
 from operator import itemgetter
-from eth_abi import encode_abi
+from eth_abi import encode_abi, decode_abi
 import sys, json, binascii
 
 ecsign = signing.utils.ecsign
@@ -45,43 +45,47 @@ class ReservesContractControl:
 		except:
 			return tx_hash, None
 
-	def fund_contract(self, wei_value, gas):
+	def fund(self, wei_value, gas):
 		if not self.deployed:
-			raise ValueError("Contract not deployed, deploy contract first!")
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
 		tx = {"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address, "to": self.contract.address, "value": wei_value}
 		signed = self.account.signTransaction(tx)
 		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
 		return tx_hash
 
-	def sign_claim(self, claimData):
+	def withdraw(self, amount, gas):
 		if not self.deployed:
-			raise ValueError("Contract not deployed, deploy contract first!")
-		tx_hash = self.contract.functions.getClaimHash(claimData).call()
-		sig = ecsign(tx_hash, self.account.privateKey)
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		if self.owner != self.account.address:
+			raise ValueError("Controller must be contract owner to withraw")
+		r = self.contract.functions.withdraw(amount)
+		tx = r.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
+		signed = self.account.signTransaction(tx)
+		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
+		return tx_hash
+
+	def sign_claim(self, claimData, priv=None):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		acct = self.account
+		if priv != None:
+			acct = self.eth.account.privateKeyToAccount(priv)
+		h = self.contract.functions.getClaimHash(claimData).call()
+		sig = ecsign(h, acct.privateKey)
 		v = sig[0]
 		r = sig[1].to_bytes((sig[1].bit_length()+7)//8, 'big')
 		s = sig[2].to_bytes((sig[2].bit_length()+7)//8, 'big')
-		if self.owner == self.account.address:
+		if self.owner == acct.address:
 			if not self.contract.functions.verifySignedClaim(claimData, True, v, r, s).call():
-				raise ValueError("Claim failed verification")
+				raise ValueError("Signed claim failed verification")
 		else:
 			if not self.contract.functions.verifySignedClaim(claimData, False, v, r, s).call():
-				raise ValueError("Claim failed verification")
+				raise ValueError("Signed claim failed verification")
 		return v, r, s
-
-	def get_encoded_claim(self, sid, receiver, amount, disputeDuration, vestTimestamp, voidTimestamp, nonce):
-		if not self.deployed:
-			raise ValueError("Contract not deployed, deploy contract first!")
-		return self.contract.functions.encodeClaim(sid, receiver, amount, disputeDuration, vestTimestamp, voidTimestamp, nonce).call()
-
-	def get_claim_id(self, sid, receiver):
-		if not self.deployed:
-			raise ValueError("Contract not deployed, deploy contract first!")
-		return self.contract.functions.getClaimID(sid, receiver).call()
 
 	def settle_claim(self, claimData, owner_sig, recv_sig, gas):
 		if not self.deployed:
-			raise ValueError("Contract not deployed, deploy contract first!")
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
 		v = [owner_sig[0], recv_sig[0]]
 		r = [owner_sig[1], recv_sig[1]]
 		s = [owner_sig[2], recv_sig[2]]
@@ -93,41 +97,74 @@ class ReservesContractControl:
 
 	def dispute_claim(self, claimData, owner_sig, recv_sig, gas):
 		if not self.deployed:
-			raise ValueError("Contract not deployed, deploy contract first!")
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
 		v = [owner_sig[0], recv_sig[0]]
 		r = [owner_sig[1], recv_sig[1]]
 		s = [owner_sig[2], recv_sig[2]]
-		settle = self.contract.functions.dispute(claimData, v, r, s)
-		tx = settle.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
+		dispute = self.contract.functions.dispute(claimData, v, r, s)
+		tx = dispute.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
 		signed = self.account.signTransaction(tx)
 		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
 		return tx_hash
 
 	def redeem_claim(self, claimID, gas):
 		if not self.deployed:
-			raise ValueError("Contract not deployed, deploy contract first!")
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
 		r = self.contract.functions.redeemClaim(claimID)
 		tx = r.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
 		signed = self.account.signTransaction(tx)
 		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
 		return tx_hash
 
-	def redeem_default(self, claimID, gas):
+	def encode_claim(self, sid, receiver, amount, disputeDuration, vestTimestamp, voidTimestamp, nonce):
 		if not self.deployed:
-			raise ValueError("Contract not deployed, deploy contract first!")
-		r = self.contract.functions.redeemDefault(claimID)
-		tx = r.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
-		signed = self.account.signTransaction(tx)
-		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
-		return tx_hash
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.encodeClaim(sid, receiver, amount, disputeDuration, vestTimestamp, voidTimestamp, nonce).call()
 
-	def withdraw(self, amount, gas):
+	def decode_claim(self, claimData):
+		return decode_abi(['bytes32', 'address', 'uint256[4]', 'uint8'], claimData)
+
+	def get_claim(self, cid, idx):
 		if not self.deployed:
-			raise ValueError("Contract not deployed, deploy contract first!")
-		if self.owner != self.account.address:
-			raise ValueError("Controller must be contract owner to withraw")
-		r = self.contract.functions.withdraw(amount)
-		tx = r.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
-		signed = self.account.signTransaction(tx)
-		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
-		return tx_hash
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.getClaim(cid, idx).call()
+
+	def get_claim_id(self, sid, receiver):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.getClaimID(sid, receiver).call()
+
+	def get_latest_claim(self, cid):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.getLatestClaim(cid).call()
+
+	def get_claim_hash(self, claimData):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.getClaimHash(claimData).call()
+
+	def get_all_claim_ids(self):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.getAllClaimIDs().call()
+
+	def get_num_claims(self, cid):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.getNumClaims(cid).call()
+
+	def get_current_claim_value(self, cid):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.getAdjustedClaimAmount(cid).call()
+
+	def get_settlement(self, cid):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.getSettlement(cid).call()
+
+	def get_settlement_time(self, cid):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.getSettlementTime(cid).call()
