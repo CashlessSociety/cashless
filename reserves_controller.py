@@ -24,7 +24,7 @@ class ReservesContractControl:
 			self.contract = self.eth.contract(abi=self.abi, bytecode=self.bytecode)
 		else:
 			self.contract = self.eth.contract(address=contract_address, abi=abi, bytecode=bytecode)
-			self.owner = self.contract.functions.getOwner().call()
+			self.owner = self.contract.functions.owner().call()
 			self.deployed = True
 
 	def deploy(self, contractID, gas):
@@ -116,10 +116,12 @@ class ReservesContractControl:
 		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
 		return tx_hash
 
-	def encode_claim(self, sid, receiver, amount, disputeDuration, vestTimestamp, voidTimestamp, nonce):
+	def encode_claim(self, sid, receiver, amount, disputeDuration, vestTimestamp, voidTimestamp, nonce, cyclicContract=None):
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
-		return self.contract.functions.encodeClaim(sid, receiver, amount, disputeDuration, vestTimestamp, voidTimestamp, nonce).call()
+		if cyclicContract == None:
+			cyclicContract = self.contract.address
+		return self.contract.functions.encodeClaim(sid, receiver, amount, disputeDuration, vestTimestamp, voidTimestamp, nonce, cyclicContract).call()
 
 	def decode_claim(self, claimData):
 		return decode_abi(['bytes32', 'address', 'uint256[4]', 'uint8'], claimData)
@@ -127,7 +129,7 @@ class ReservesContractControl:
 	def get_claim(self, cid, idx):
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
-		return self.contract.functions.getClaim(cid, idx).call()
+		return self.contract.functions.claims(cid, idx).call()
 
 	def get_claim_id(self, sid, receiver):
 		if not self.deployed:
@@ -137,7 +139,8 @@ class ReservesContractControl:
 	def get_latest_claim(self, cid):
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
-		return self.contract.functions.getLatestClaim(cid).call()
+		l = self.contract.functions.getClaimLength(cid).call()
+		return self.contract.functions.claims(cid, l-1).call()
 
 	def get_claim_hash(self, claimData):
 		if not self.deployed:
@@ -149,10 +152,10 @@ class ReservesContractControl:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
 		return self.contract.functions.getAllClaimIDs().call()
 
-	def get_num_claims(self, cid):
+	def get_claim_length(self, cid):
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
-		return self.contract.functions.getNumClaims(cid).call()
+		return self.contract.functions.getClaimLength(cid).call()
 
 	def get_current_claim_value(self, cid):
 		if not self.deployed:
@@ -162,9 +165,14 @@ class ReservesContractControl:
 	def get_settlement(self, cid):
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
-		return self.contract.functions.getSettlement(cid).call()
+		return self.contract.functions.settlements(cid).call()
 
-	def get_settlement_time(self, cid):
+	def get_settle_time(self, cid):
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
-		return self.contract.functions.getSettlementTime(cid).call()
+		return self.contract.functions.settlementTimestamps(cid, 0).call()
+
+	def get_disput_start_time(self, cid):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		return self.contract.functions.settlementTimestamps(cid, 1).call()

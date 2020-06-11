@@ -55,6 +55,10 @@
 			{
 				"name": "nonce",
 				"type": "uint8"
+			},
+			{
+				"name": "cyclicContract",
+				"type": "address"
 			}
 		],
 		"name": "encodeClaim",
@@ -66,6 +70,48 @@
 		],
 		"payable": false,
 		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"name": "settlements",
+		"outputs": [
+			{
+				"name": "amountPaid",
+				"type": "uint256"
+			},
+			{
+				"name": "amountDefaulted",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "getClaimLength",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -138,17 +184,12 @@
 	},
 	{
 		"constant": true,
-		"inputs": [
-			{
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "settled",
+		"inputs": [],
+		"name": "grossPaid",
 		"outputs": [
 			{
 				"name": "",
-				"type": "bytes32"
+				"type": "uint256"
 			}
 		],
 		"payable": false,
@@ -206,39 +247,16 @@
 		"constant": true,
 		"inputs": [
 			{
-				"name": "claimID",
+				"name": "",
 				"type": "bytes32"
 			},
-			{
-				"name": "i",
-				"type": "uint8"
-			}
-		],
-		"name": "getClaim",
-		"outputs": [
-			{
-				"name": "",
-				"type": "bytes"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "claimID",
-				"type": "bytes32"
-			}
-		],
-		"name": "getSettlementTime",
-		"outputs": [
 			{
 				"name": "",
 				"type": "uint256"
-			},
+			}
+		],
+		"name": "settlementTimestamps",
+		"outputs": [
 			{
 				"name": "",
 				"type": "uint256"
@@ -293,11 +311,11 @@
 	{
 		"constant": true,
 		"inputs": [],
-		"name": "getOwner",
+		"name": "grossClaimed",
 		"outputs": [
 			{
 				"name": "",
-				"type": "address"
+				"type": "uint256"
 			}
 		],
 		"payable": false,
@@ -365,6 +383,71 @@
 	},
 	{
 		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "bytes32"
+			},
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "claims",
+		"outputs": [
+			{
+				"name": "id",
+				"type": "bytes32"
+			},
+			{
+				"name": "receiver",
+				"type": "address"
+			},
+			{
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"name": "disputeDuration",
+				"type": "uint256"
+			},
+			{
+				"name": "vestTimestamp",
+				"type": "uint256"
+			},
+			{
+				"name": "voidTimestamp",
+				"type": "uint256"
+			},
+			{
+				"name": "nonce",
+				"type": "uint8"
+			},
+			{
+				"name": "cyclicContract",
+				"type": "address"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "minVestDuration",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
 		"inputs": [],
 		"name": "getAllClaimIDs",
 		"outputs": [
@@ -379,59 +462,12 @@
 	},
 	{
 		"constant": true,
-		"inputs": [
-			{
-				"name": "claimID",
-				"type": "bytes32"
-			}
-		],
-		"name": "getSettlement",
+		"inputs": [],
+		"name": "grossDefaulted",
 		"outputs": [
 			{
 				"name": "",
 				"type": "uint256"
-			},
-			{
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "claimID",
-				"type": "bytes32"
-			}
-		],
-		"name": "getNumClaims",
-		"outputs": [
-			{
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
-				"name": "claimID",
-				"type": "bytes32"
-			}
-		],
-		"name": "getLatestClaim",
-		"outputs": [
-			{
-				"name": "",
-				"type": "bytes"
 			}
 		],
 		"payable": false,

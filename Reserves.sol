@@ -18,6 +18,7 @@ contract Reserves {
         uint256 vestTimestamp;
         uint256 voidTimestamp;
         uint8 nonce;
+        address cyclicContract;
     }
     
     struct Settlement {
@@ -27,15 +28,14 @@ contract Reserves {
     
     address payable public owner;
     bytes32[] public claimIDs;
-    bytes32[] public settled;
-    mapping (bytes32 => Claim[]) claims;
-    mapping (bytes32 => uint256[2]) settlementTimestamps;
-    uint256 grossClaimed;
-    uint256 grossDefaulted;
-    uint256 grossPaid;
-    uint256 minVestDuration = 86400;
+    mapping (bytes32 => Claim[]) public claims;
+    mapping (bytes32 => uint256[2]) public settlementTimestamps;
+    uint256 public grossClaimed;
+    uint256 public grossDefaulted;
+    uint256 public grossPaid;
+    uint256 public minVestDuration = 86400;
 
-    mapping (bytes32 => Settlement) settlements;
+    mapping (bytes32 => Settlement) public settlements;
 
     // Constructor Function 
     constructor (bytes32 constructID) public {
@@ -46,7 +46,10 @@ contract Reserves {
     // State Modifying Public Functions
     function settle(bytes memory data, uint8[2] memory vs, bytes32[2] memory rs, bytes32[2] memory ss) public {
         bytes32 hash = getClaimHash(data);
-        (bytes32 sid, address payable receiver, uint256[4] memory values, uint8 nonce) = abi.decode(data, (bytes32, address, uint256[4], uint8));
+        (bytes32 sid, address payable receiver, uint256[4] memory values, uint8 nonce, address cyclicContract) = abi.decode(data, (bytes32, address, uint256[4], uint8, address));
+        if (cyclicContract != address(this)) {
+            require(msg.sender==cyclicContract);
+        }
         bytes32 id = getClaimID(sid, receiver);
         for (uint256 i=0; i<claimIDs.length; i++) {
             require(claimIDs[i] != id);
@@ -58,10 +61,9 @@ contract Reserves {
         require(now < values[3]);
         require(nonce > 0);
         require(ecrecover(hash, vs[0], rs[0], ss[0]) == owner);
-        require(ecrecover(hash, vs[1], rs[1], ss[1]) == Reserves(receiver).getOwner());
- 
+        require(ecrecover(hash, vs[1], rs[1], ss[1]) == Reserves(receiver).owner());
         claimIDs.push(id);
-        claims[id].push(Claim(id, receiver, values[0], values[1], values[2], values[3], nonce));
+        claims[id].push(Claim(id, receiver, values[0], values[1], values[2], values[3], nonce, cyclicContract));
         settlementTimestamps[id][0] = now;
         settlementTimestamps[id][1] = now;
         grossClaimed = SafeMath.add(grossClaimed, getAdjustedClaimAmount(id));
@@ -73,7 +75,10 @@ contract Reserves {
 
     function dispute(bytes memory data, uint8[2] memory vs, bytes32[2] memory rs, bytes32[2] memory ss) public {
         bytes32 hash = getClaimHash(data);
-        (bytes32 sid, address payable receiver, uint256[4] memory values, uint8 nonce) = abi.decode(data, (bytes32, address, uint256[4], uint8));
+        (bytes32 sid, address payable receiver, uint256[4] memory values, uint8 nonce, address cyclicContract) = abi.decode(data, (bytes32, address, uint256[4], uint8, address));
+        if (cyclicContract != address(this)) {
+            require(msg.sender==cyclicContract);
+        }
         bytes32 id = getClaimID(sid, receiver);
         require(claims[id].length > 0);
         uint256 index = claims[id].length - 1;
@@ -84,9 +89,9 @@ contract Reserves {
         require(SafeMath.sub(values[3], values[2]) >= minVestDuration);
         require(nonce > claims[id][index].nonce);
         require(ecrecover(hash, vs[0], rs[0], ss[0]) == owner);
-        require(ecrecover(hash, vs[1], rs[1], ss[1]) == Reserves(receiver).getOwner());
+        require(ecrecover(hash, vs[1], rs[1], ss[1]) == Reserves(receiver).owner());
         uint256 oldAmount = getAdjustedClaimAmount(id);
-        claims[id].push(Claim(id, receiver, values[0], values[1], values[2], values[3], nonce));
+        claims[id].push(Claim(id, receiver, values[0], values[1], values[2], values[3], nonce, cyclicContract));
         settlementTimestamps[id][1] = now;
         uint256 newAmount = getAdjustedClaimAmount(id);
         grossClaimed = SafeMath.sub(grossClaimed, oldAmount);
@@ -137,24 +142,6 @@ contract Reserves {
     }
     
     // Public Helper Functions
-    function getOwner() public view returns (address) {
-        return owner;
-    }
-    
-    function getClaim(bytes32 claimID, uint8 i) public view returns (bytes memory) {
-        require(claims[claimID].length > i);
-        return encodeClaim(claims[claimID][i].id, claims[claimID][i].receiver, claims[claimID][i].amount, claims[claimID][i].disputeDuration, claims[claimID][i].vestTimestamp, claims[claimID][i].voidTimestamp, claims[claimID][i].nonce);
-    }
-    
-    function getLatestClaim(bytes32 claimID) public view returns (bytes memory) {
-        require(claims[claimID].length > 0);
-        return encodeClaim(claims[claimID][claims[claimID].length-1].id, claims[claimID][claims[claimID].length-1].receiver, claims[claimID][claims[claimID].length-1].amount, claims[claimID][claims[claimID].length-1].disputeDuration, claims[claimID][claims[claimID].length-1].vestTimestamp, claims[claimID][claims[claimID].length-1].voidTimestamp, claims[claimID][claims[claimID].length-1].nonce);
-    }
-
-    function getSettlement(bytes32 claimID) public view returns (uint256, uint256) {
-        return (settlements[claimID].amountPaid, settlements[claimID].amountDefaulted);
-    }
-
     function getClaimHash(bytes memory data) public view returns (bytes32) {
         return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, keccak256(data)));
     }
@@ -163,16 +150,12 @@ contract Reserves {
         return keccak256(abi.encodePacked(sid, keccak256(abi.encodePacked(addr))));
     }
     
-    function getAllClaimIDs() public view returns (bytes32[] memory) {
-        return claimIDs;
-    }
-    
-    function getNumClaims(bytes32 claimID) public view returns (uint256) {
+    function getClaimLength(bytes32 claimID) public view returns (uint256) {
         return claims[claimID].length;
     }
     
-    function getSettlementTime(bytes32 claimID) public view returns (uint256, uint256) {
-        return (settlementTimestamps[claimID][0], settlementTimestamps[claimID][1]);
+    function getAllClaimIDs() public view returns (bytes32[] memory) {
+        return claimIDs;
     }
     
     function getAdjustedClaimAmount(bytes32 claimID) public view returns (uint256) {
@@ -187,7 +170,7 @@ contract Reserves {
     }
     
     function isValidClaim(bytes memory data) public view returns (bool) {
-        (bytes32 sid, address payable receiver, uint256[4] memory values, uint8 nonce) = abi.decode(data, (bytes32, address, uint256[4], uint8));
+        (bytes32 sid, address payable receiver, uint256[4] memory values, uint8 nonce, address _) = abi.decode(data, (bytes32, address, uint256[4], uint8, address));
         if (0 >= nonce) {
             return false;
         }
@@ -198,7 +181,7 @@ contract Reserves {
     }
     
     function verifySignedClaim(bytes memory data, bool isOwner, uint8 v, bytes32 r, bytes32 s) public view returns (bool) {
-        (bytes32 sid, address payable receiver, uint256[4] memory values, uint8 nonce) = abi.decode(data, (bytes32, address, uint256[4], uint8));
+        (bytes32 sid, address payable receiver, uint256[4] memory values, uint8 nonce, address _) = abi.decode(data, (bytes32, address, uint256[4], uint8, address));
         if (0 >= nonce) {
             return false;
         }
@@ -210,7 +193,7 @@ contract Reserves {
         if (isOwner) {
             recover = owner;
         } else {
-            recover = Reserves(receiver).getOwner();
+            recover = Reserves(receiver).owner();
         }
         if (ecrecover(hash, v, r, s) != recover) {
             return false;
@@ -218,13 +201,13 @@ contract Reserves {
         return true;
     }
     
-    function encodeClaim(bytes32 sid, address payable receiver, uint256 amount, uint256 disputeDuration, uint256 vestTimestamp, uint256 voidTimestamp, uint8 nonce) public pure returns (bytes memory)  {
+    function encodeClaim(bytes32 sid, address payable receiver, uint256 amount, uint256 disputeDuration, uint256 vestTimestamp, uint256 voidTimestamp, uint8 nonce, address cyclicContract) public pure returns (bytes memory)  {
         uint256[4] memory values;
         values[0] = amount;
         values[1] = disputeDuration;
         values[2] = vestTimestamp;
         values[3] = voidTimestamp;
-        return abi.encode(sid, receiver, values, nonce);
+        return abi.encode(sid, receiver, values, nonce, cyclicContract);
     }
 
     // Fallback Funtion
