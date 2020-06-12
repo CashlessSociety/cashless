@@ -1,5 +1,5 @@
 from web3 import Web3, HTTPProvider
-from reserves_controller import ReservesContractControl
+from contract_controller import ReservesContractControl
 from hashlib import sha256
 import time, binascii, random
 
@@ -32,10 +32,10 @@ if __name__ == '__main__':
 	s2 = reservesA.sign_claim(d, priv=priv2)
 	try:
 		reservesA.sign_claim(d, priv=priv3)
-		print("FAIL")
+		raise ValueError('FAILED TEST')
 	except:
-		reservesA.settle_claim(d, s1, s2, 1000000)
-		if (Web3.toWei(10, "ether") == w3.eth.getBalance(reservesB.contract.address)) and (Web3.toWei(2, "ether") == w3.eth.getBalance(reservesA.contract.address)):
-			print("PASS")
-		else:
-			print("FAIL")
+		pass
+	reservesA.settle_claim(d, s1, s2, 1000000)
+	if (Web3.toWei(10, "ether") != w3.eth.getBalance(reservesB.contract.address)) or (Web3.toWei(2, "ether") != w3.eth.getBalance(reservesA.contract.address)):
+		raise ValueError('FAILED TEST')
+	print("PASS")
