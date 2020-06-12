@@ -176,3 +176,82 @@ class ReservesContractControl:
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
 		return self.contract.functions.settlementTimestamps(cid, 1).call()
+
+with open("CyclicReciprocity.abi", "r") as f:
+	raw_cyclic_abi = f.read()
+with open("CyclicReciprocity.bin", "r") as f:
+	raw_cyclic_bytecode = f.read()
+CYCLIC_ABI = json.loads(raw_cyclic_abi)
+CYCLIC_BYTECODE = json.loads(raw_cyclic_bytecode)["object"]
+
+class CyclicReciprocityContractControl:
+	def __init__(self, priv, w3_provider, contract_address=None, abi=CYCLIC_ABI, bytecode=CYCLIC_BYTECODE):
+		self.eth = w3_provider.eth
+		self.account = self.eth.account.privateKeyToAccount(priv)
+		self.abi = abi
+		self.bytecode = bytecode
+		self.deployed = False
+		self.owner = None
+		if contract_address is None:
+			self.contract = self.eth.contract(abi=self.abi, bytecode=self.bytecode)
+		else:
+			self.contract = self.eth.contract(address=contract_address, abi=abi, bytecode=bytecode)
+			self.loop = self.contract.functions.getLoop().call()
+			self.amount = self.contract.functions.minFlow().call()
+			self.locktime = self.contract.functions.lockTime().call()
+			self.deployed = True
+
+	def deploy(self, loop, amount, locktime, gas):
+		if self.deployed:
+			raise ValueError(f"Contract already deployed ({self.contract.address})")
+		constructed_contract = self.contract.constructor(loop, amount, locktime)
+		basetx = {"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas":gas, "from": self.account.address}
+		tx = constructed_contract.buildTransaction(basetx)
+		signed = self.account.signTransaction(tx)
+		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
+		self.loop = loop
+		self.amount = amount
+		self.locktime = locktime
+		self.deployed = True
+		try:
+			tx_receipt = self.eth.waitForTransactionReceipt(tx_hash)
+			contract_address = tx_receipt["contractAddress"]
+			self.contract = self.eth.contract(address=contract_address, abi=self.abi, bytecode=self.bytecode)
+			return tx_hash, contract_address
+		except:
+			return tx_hash, None
+
+	def submit_claim(self, reserves, data1, owner_sig1, recv_sig1, data2, owner_sig2, recv_sig2, gas):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		v1 = [owner_sig1[0], recv_sig1[0]]
+		r1 = [owner_sig1[1], recv_sig1[1]]
+		s1 = [owner_sig1[2], recv_sig1[2]]
+		v2 = [owner_sig2[0], recv_sig2[0]]
+		r2 = [owner_sig2[1], recv_sig2[1]]
+		s2 = [owner_sig2[2], recv_sig2[2]]
+		encoded1 = encode_abi(['address', 'bytes', 'uint8[2]', 'bytes32[2]', 'bytes32[2]'], reserves, data1, v1, r1, s1)
+		encoded2 = encode_abi(['address', 'bytes', 'uint8[2]', 'bytes32[2]', 'bytes32[2]'], reserves, data2, v2, r2, s2)
+		submit = self.contract.functions.submitClaim(encoded1, encoded2)
+		tx = submit.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
+		signed = self.account.signTransaction(tx)
+		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
+		return tx_hash
+
+	def settle_claim(self, reserves):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		settle = self.contract.functions.settle(reserves)
+		tx = settle.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
+		signed = self.account.signTransaction(tx)
+		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
+		return tx_hash
+
+	def dispute_claim(self, reserves):
+		if not self.deployed:
+			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
+		dispute = self.contract.functions.dispute(reserves)
+		tx = dispute.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
+		signed = self.account.signTransaction(tx)
+		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
+		return tx_hash

@@ -17,25 +17,6 @@
 		"constant": true,
 		"inputs": [
 			{
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "loop",
-		"outputs": [
-			{
-				"name": "",
-				"type": "address"
-			}
-		],
-		"payable": false,
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"constant": true,
-		"inputs": [
-			{
 				"name": "priorClaim",
 				"type": "bytes"
 			},
@@ -90,7 +71,7 @@
 	{
 		"constant": true,
 		"inputs": [],
-		"name": "size",
+		"name": "minFlow",
 		"outputs": [
 			{
 				"name": "",
@@ -104,11 +85,11 @@
 	{
 		"constant": true,
 		"inputs": [],
-		"name": "minFlow",
+		"name": "getCommitted",
 		"outputs": [
 			{
 				"name": "",
-				"type": "uint256"
+				"type": "address[]"
 			}
 		],
 		"payable": false,
@@ -135,6 +116,20 @@
 		"type": "function"
 	},
 	{
+		"constant": true,
+		"inputs": [],
+		"name": "getLoop",
+		"outputs": [
+			{
+				"name": "",
+				"type": "address[]"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"constant": false,
 		"inputs": [
 			{
@@ -151,11 +146,11 @@
 	{
 		"inputs": [
 			{
-				"name": "participants",
+				"name": "_loop",
 				"type": "address[]"
 			},
 			{
-				"name": "value",
+				"name": "_minFlow",
 				"type": "uint256"
 			},
 			{
