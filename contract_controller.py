@@ -5,9 +5,9 @@ import sys, json, binascii
 
 ecsign = signing.utils.ecsign
 
-with open("Reserves.abi", "r") as f:
+with open("bin/Reserves.abi", "r") as f:
 	raw_reserves_abi = f.read()
-with open("Reserves.bin", "r") as f:
+with open("bin/Reserves.bin", "r") as f:
 	raw_reserves_bytecode = f.read()
 RESERVES_ABI = json.loads(raw_reserves_abi)
 RESERVES_BYTECODE = json.loads(raw_reserves_bytecode)["object"]
@@ -177,9 +177,9 @@ class ReservesContractControl:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
 		return self.contract.functions.settlementTimestamps(cid, 1).call()
 
-with open("CyclicReciprocity.abi", "r") as f:
+with open("bin/CyclicReciprocity.abi", "r") as f:
 	raw_cyclic_abi = f.read()
-with open("CyclicReciprocity.bin", "r") as f:
+with open("bin/CyclicReciprocity.bin", "r") as f:
 	raw_cyclic_bytecode = f.read()
 CYCLIC_ABI = json.loads(raw_cyclic_abi)
 CYCLIC_BYTECODE = json.loads(raw_cyclic_bytecode)["object"]
@@ -230,15 +230,15 @@ class CyclicReciprocityContractControl:
 		v2 = [owner_sig2[0], recv_sig2[0]]
 		r2 = [owner_sig2[1], recv_sig2[1]]
 		s2 = [owner_sig2[2], recv_sig2[2]]
-		encoded1 = encode_abi(['address', 'bytes', 'uint8[2]', 'bytes32[2]', 'bytes32[2]'], reserves, data1, v1, r1, s1)
-		encoded2 = encode_abi(['address', 'bytes', 'uint8[2]', 'bytes32[2]', 'bytes32[2]'], reserves, data2, v2, r2, s2)
+		encoded1 = encode_abi(['address', 'bytes', 'uint8[2]', 'bytes32[2]', 'bytes32[2]'], (reserves, data1, v1, r1, s1))
+		encoded2 = encode_abi(['address', 'bytes', 'uint8[2]', 'bytes32[2]', 'bytes32[2]'], (reserves, data2, v2, r2, s2))
 		submit = self.contract.functions.submitClaim(encoded1, encoded2)
 		tx = submit.buildTransaction({"nonce": self.eth.getTransactionCount(self.account.address), "gasPrice": self.eth.gasPrice, "gas": gas, "from": self.account.address})
 		signed = self.account.signTransaction(tx)
 		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
 		return tx_hash
 
-	def settle_claim(self, reserves):
+	def settle_claim(self, reserves, gas):
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
 		settle = self.contract.functions.settle(reserves)
@@ -247,7 +247,7 @@ class CyclicReciprocityContractControl:
 		tx_hash = self.eth.sendRawTransaction(signed.rawTransaction)
 		return tx_hash
 
-	def dispute_claim(self, reserves):
+	def dispute_claim(self, reserves, gas):
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
 		dispute = self.contract.functions.dispute(reserves)

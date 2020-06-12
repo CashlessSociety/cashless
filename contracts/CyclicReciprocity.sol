@@ -62,7 +62,7 @@ contract CyclicReciprocity {
         require(nonce1+1==nonce2);
         require(sid1==sid2);
         require(receiver1==receiver2);
-        require(SafeMath.sub(values2[0], values1[0]) == minFlow);
+        require(SafeMath.sub(values1[0], values2[0]) == minFlow);
         return receiver1;
     }
     
