@@ -28,9 +28,9 @@ Choose quick start.
 
 [!](./doc/ganache_quick_start.png)
 
-5. Copy private keys from ganache into reserves_test
+5. Copy private keys from ganache into local_keys
 
-Click on the 'key' for three random addresses and get the private key, copy it into the obvious place in reserves_test.py
+Click on the 'key' for three random addresses and get the private key, copy it into the obvious place in local_keys.py
 
 [!](./doc/ganache_priv_keys.png)
 
