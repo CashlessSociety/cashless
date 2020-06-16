@@ -5,6 +5,6 @@
 # Pick three random addresses, click the 'key' icon, get the private key
 # copy it into place below
 
-priv1 = "141b6170a350f6fee2715cce4de66da23baf49b6cdd9c08a8a63f47860e4316e"
-priv2 = "0d84e2943d41dd31972124ce29ecd5491f1602ed5e6eb93dbb3118deb888063d"
-priv3 = "a8ee3724eefa7e22c189184c259694820bd3a8de8a170c704189df27121dd018"
+priv1 = "fa9066494f87ea600d2047819f2ddab50f90e034ecf5bd279a55035ff8d555ee"
+priv2 = "44ad5d96637fe21728a16b2aa7c4c35eb6c548f3f4a7724101e4747c2e7a1c21"
+priv3 = "755324529362e2e77d0bc3433b20f18955fcc4d45a6ab14b6183f18f6d1d2d6c"

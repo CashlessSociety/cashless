@@ -67,20 +67,36 @@ class ReservesContractControl:
 	def sign_claim(self, claimData, priv=None):
 		if not self.deployed:
 			raise ValueError("No contract address exists (deploy contract first or instantiate existing contract)")
-		acct = self.account
-		if priv != None:
-			acct = self.eth.account.privateKeyToAccount(priv)
-		h = self.contract.functions.getClaimHash(claimData).call()
-		sig = ecsign(h, acct.privateKey)
-		v = sig[0]
-		r = sig[1].to_bytes((sig[1].bit_length()+7)//8, 'big')
-		s = sig[2].to_bytes((sig[2].bit_length()+7)//8, 'big')
-		if self.owner == acct.address:
-			if not self.contract.functions.verifySignedClaim(claimData, True, v, r, s).call():
-				raise ValueError("Signed claim failed verification")
-		else:
-			if not self.contract.functions.verifySignedClaim(claimData, False, v, r, s).call():
-				raise ValueError("Signed claim failed verification")
+		try:
+			acct = self.account
+			if priv != None:
+				acct = self.eth.account.privateKeyToAccount(priv)
+			h = self.contract.functions.getClaimHash(claimData).call()
+			sig = ecsign(h, acct.privateKey)
+			v = sig[0]
+			r = sig[1].to_bytes((sig[1].bit_length()+7)//8, 'big')
+			s = sig[2].to_bytes((sig[2].bit_length()+7)//8, 'big')
+			if self.owner == acct.address:
+				if not self.contract.functions.verifySignedClaim(claimData, True, v, r, s).call():
+					raise ValueError("Signed claim failed verification")
+			else:
+				if not self.contract.functions.verifySignedClaim(claimData, False, v, r, s).call():
+					raise ValueError("Signed claim failed verification")
+		except:
+			acct = self.account
+			if priv != None:
+				acct = self.eth.account.privateKeyToAccount(priv)
+			h = self.contract.functions.getClaimHash(claimData).call()
+			sig = ecsign(h, acct.privateKey)
+			v = sig[0]
+			r = sig[1].to_bytes((sig[1].bit_length()+7)//8, 'big')
+			s = sig[2].to_bytes((sig[2].bit_length()+7)//8, 'big')
+			if self.owner == acct.address:
+				if not self.contract.functions.verifySignedClaim(claimData, True, v, r, s).call():
+					raise ValueError("Signed claim failed verification")
+			else:
+				if not self.contract.functions.verifySignedClaim(claimData, False, v, r, s).call():
+					raise ValueError("Signed claim failed verification")
 		return v, r, s
 
 	def settle_claim(self, claimData, owner_sig, recv_sig, gas):
