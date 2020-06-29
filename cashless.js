@@ -1,9 +1,10 @@
-const Web3 = require('web3');
+const ethers = require('ethers');
 const fs = require('fs');
 const crypto = require('crypto');
 
+const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:7545');
 
-const web3 = new Web3('http://127.0.0.1:7545');
+var cashless;
 
 var hashString = str => {
 	const hash = crypto.createHash('sha256');
@@ -11,45 +12,66 @@ var hashString = str => {
 	return hash.digest();
 }
 
-var rawABI = fs.readFileSync('bin/Cashless.abi');
-var cashlessABI = JSON.parse(rawABI);
-
-var deployCashless = sender => {
+var deployCashless = deployerPriv => {
+	let rawABI = fs.readFileSync('bin/Cashless.abi');
+	let contractABI = JSON.parse(rawABI);
 	let rawBIN = fs.readFileSync('bin/Cashless.bin');
-	let cashlessBIN = JSON.parse(rawBIN)['object'];
-	let myContract = new web3.eth.Contract(cashlessABI);
-	let h = hashString('abc');
+	let contractBIN = JSON.parse(rawBIN)['object'];
+	let wallet = new ethers.Wallet(deployerPriv, provider);
+	let factory = new ethers.ContractFactory(contractABI, contractBIN, wallet);
+	let deployTx = factory.getDeployTransaction(hashString('abc'));
+	deployTx.gasLimit = 6500000;
+	deployTx.gasPrice = 30000000000;
 	return new Promise((resolve, reject) => {
-		myContract.deploy({
-		    data: cashlessBIN,
-		    arguments: [h]
+		wallet.sendTransaction(deployTx)
+		.then(function(tx){
+			provider.getTransactionReceipt(tx.hash)
+			.then(function(receipt) {
+				cashless = new ethers.Contract(receipt.contractAddress, contractABI, provider);
+				resolve(tx.hash);
+			})
+			.catch(function(error) {
+				reject(error);
+			});
 		})
-		.send({
-			from: sender,
-		    gas: 6500000,
-		    gasPrice: '30000000000'
-		}, function(error, txHash){})
-		.on('error', function(error) {
+		.catch(function(error) {
 			reject(error);
-		})
-		.on('receipt', function(receipt) {
-			console.log("deployed:", receipt.contractAddress);
-			resolve(receipt.contractAddress);
 		});
 	});
 }
 
-var localFundedAddress = '0x73f4Bb88c7203A1937f4FFA739c7a042aA53BC16'; //FILL WITH ONE OF YOUR LOCAL DEFAULT ADDRESSES
-deployCashless(localFundedAddress).then(function(addr) {
-	var contract = new web3.eth.Contract(cashlessABI, addr);
-	// verify communication with contract
-	contract.methods.DOMAIN_SEPARATOR().call().then(function(resp) {
-		console.log("contract global variable:", resp);
-		console.log("PASS!");
+var initReserves = (amount, priv) => {
+	let myContract = cashless.connect(new ethers.Wallet(priv, provider));
+	let options = {value: ethers.utils.parseEther(amount), gasLimit: 1000000};
+	return new Promise((resolve, reject) => {
+		myContract.functions.createReserves(options)
+		.then(function(result) {
+			resolve(result);
+		})
+		.catch(function(error) {
+			reject(error);
+		});
+	});
+}
+
+var testDeployAndInit = priv => {
+	deployCashless(priv)
+	.then(txHash => {
+		console.log("deployed contract:", txHash, "\naddress:", cashless.address);
+		initReserves('10.0', priv)
+		.then(tx => {
+			console.log("created reserves:", tx.hash);
+		})
+		.catch(error => {
+			console.log("error createing reserves:", error.message);
+		});
 	})
-	.catch(function(error){
-		console.log("error calling contract:", error.message);
-	})
-}).catch(function(error){
-	console.log("error deploying:", error.message);
-})
+	.catch(error => {
+		console.log("error deploying:", error.message);
+	});
+}
+
+// CHANGE 'myLocalPriv' TO A PRIVATE KEY OF A FUNDED ADDRESS ON YOUR LOCAL BLOCKCHAIN
+// IMPORTANT: NEVER HARDCODE PRIVATE KEY OF A REAL WALLET HERE OR YOU WILL LOSE ALL YOUR ETHER...
+myLocalPriv = '0xfa9066494f87ea600d2047819f2ddab50f90e034ecf5bd279a55035ff8d555ee';
+testDeployAndInit(myLocalPriv);
