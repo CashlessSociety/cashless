@@ -1,0 +1,586 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "salt",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"stateMutability": "nonpayable",
+		"type": "fallback"
+	},
+	{
+		"inputs": [],
+		"name": "DOMAIN_SEPARATOR",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "newAlias",
+				"type": "bytes32"
+			}
+		],
+		"name": "addAlias",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"name": "aliases",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "loopID",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes",
+				"name": "encodedPriorClaim",
+				"type": "bytes"
+			},
+			{
+				"internalType": "bytes",
+				"name": "encodedClaim",
+				"type": "bytes"
+			}
+		],
+		"name": "commitLoopClaim",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "createReserves",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "claimData",
+				"type": "bytes"
+			}
+		],
+		"name": "decodeClaim",
+		"outputs": [
+			{
+				"internalType": "uint256[4]",
+				"name": "",
+				"type": "uint256[4]"
+			},
+			{
+				"internalType": "address[2]",
+				"name": "",
+				"type": "address[2]"
+			},
+			{
+				"internalType": "bytes32[3]",
+				"name": "",
+				"type": "bytes32[3]"
+			},
+			{
+				"internalType": "uint8",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "existingAlias",
+				"type": "bytes32"
+			}
+		],
+		"name": "deleteAlias",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "claimData",
+				"type": "bytes"
+			},
+			{
+				"internalType": "uint8[2]",
+				"name": "sigsV",
+				"type": "uint8[2]"
+			},
+			{
+				"internalType": "bytes32[2]",
+				"name": "sigsR",
+				"type": "bytes32[2]"
+			},
+			{
+				"internalType": "bytes32[2]",
+				"name": "sigsS",
+				"type": "bytes32[2]"
+			}
+		],
+		"name": "disputeSettlement",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256[4]",
+				"name": "values",
+				"type": "uint256[4]"
+			},
+			{
+				"internalType": "address[2]",
+				"name": "addrs",
+				"type": "address[2]"
+			},
+			{
+				"internalType": "bytes32[3]",
+				"name": "ids",
+				"type": "bytes32[3]"
+			},
+			{
+				"internalType": "uint8",
+				"name": "nonce",
+				"type": "uint8"
+			}
+		],
+		"name": "encodeClaim",
+		"outputs": [
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "accountOwner",
+				"type": "address"
+			}
+		],
+		"name": "fundReserves",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "accountOwner",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "getAdjustedClaimAmount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "accountOwner",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "index",
+				"type": "uint256"
+			}
+		],
+		"name": "getClaimID",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "claimName",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address",
+				"name": "sender",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "receiver",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "receiverAlias",
+				"type": "bytes32"
+			}
+		],
+		"name": "getClaimID",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "accountOwner",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "getClaimLength",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "proposalName",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address[]",
+				"name": "loop",
+				"type": "address[]"
+			}
+		],
+		"name": "getLoopID",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "accountOwner",
+				"type": "address"
+			}
+		],
+		"name": "getNumClaims",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "data",
+				"type": "bytes"
+			}
+		],
+		"name": "hashClaimData",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"name": "loops",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "proposalName",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "uint256",
+				"name": "minFlow",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "lockTimestamp",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "minVestDuration",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "minWithdrawFee",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "networkAdmin",
+		"outputs": [
+			{
+				"internalType": "address payable",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "proposalName",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address[]",
+				"name": "loop",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint256",
+				"name": "minFlow",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "lockTimestamp",
+				"type": "uint256"
+			}
+		],
+		"name": "proposeLoop",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "claimData",
+				"type": "bytes"
+			},
+			{
+				"internalType": "uint8[2]",
+				"name": "sigsV",
+				"type": "uint8[2]"
+			},
+			{
+				"internalType": "bytes32[2]",
+				"name": "sigsR",
+				"type": "bytes32[2]"
+			},
+			{
+				"internalType": "bytes32[2]",
+				"name": "sigsS",
+				"type": "bytes32[2]"
+			}
+		],
+		"name": "proposeSettlement",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "accountOwner",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "claimID",
+				"type": "bytes32"
+			}
+		],
+		"name": "redeemClaim",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "claimData",
+				"type": "bytes"
+			},
+			{
+				"internalType": "uint8",
+				"name": "v",
+				"type": "uint8"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "r",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "s",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "bool",
+				"name": "isOwner",
+				"type": "bool"
+			}
+		],
+		"name": "verifyClaimSig",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address payable",
+				"name": "targetReceiver",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "tip",
+				"type": "uint256"
+			}
+		],
+		"name": "withdrawReserves",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]

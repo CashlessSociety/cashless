@@ -1,0 +1,25 @@
+{
+  "name": "cashless",
+  "version": "0.1.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/superarius/cashless.git"
+  },
+  "author": "factn",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/superarius/cashless/issues"
+  },
+  "homepage": "https://github.com/superarius/cashless#readme",
+  "dependencies": {
+    "ethers": "^5.0.3",
+    "express": "^4.17.1",
+    "mongodb": "^3.5.9",
+    "web3": "^1.2.9"
+  }
+}
