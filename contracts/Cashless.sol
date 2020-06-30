@@ -65,6 +65,7 @@ contract Cashless {
     address payable public networkAdmin;
     mapping (address => Reserves) reserves;
     mapping (bytes32 => address) public aliases;
+    mapping (bytes32 => address) public pendingAliases;
     mapping (bytes32 => LoopProposal) public loops;
 
     // Constructor function
@@ -106,12 +107,26 @@ contract Cashless {
     function addAlias(bytes32 newAlias) public {
         require(reserves[msg.sender].owner == address(msg.sender));
         require(aliases[newAlias]==address(0));
+        require(pendingAliases[newAlias]==address(0));
         aliases[newAlias] = msg.sender;
     }
     
     function deleteAlias(bytes32 existingAlias) public {
         require(aliases[existingAlias] == address(msg.sender));
         aliases[existingAlias] = address(0);
+    }
+
+    function addPendingAlias(bytes32 newAlias) public {
+        require(reserves[msg.sender].owner == address(msg.sender));
+        require(aliases[newAlias]==address(0));
+        require(pendingAliases[newAlias]==address(0));
+        pendingAliases[newAlias] = msg.sender;    
+    }
+
+    function commitPendingAlias(bytes32 newAlias, address addr) public {
+        require(pendingAliases[newAlias] == msg.sender);
+        pendingAliases[newAlias] = address(0);
+        aliases[newAlias] = addr;
     }
     
     function proposeSettlement(bytes memory claimData, uint8[2] memory sigsV, bytes32[2] memory sigsR, bytes32[2] memory sigsS) public {

@@ -44,6 +44,19 @@
 		"inputs": [
 			{
 				"internalType": "bytes32",
+				"name": "newAlias",
+				"type": "bytes32"
+			}
+		],
+		"name": "addPendingAlias",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
 				"name": "",
 				"type": "bytes32"
 			}
@@ -78,6 +91,24 @@
 			}
 		],
 		"name": "commitLoopClaim",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "newAlias",
+				"type": "bytes32"
+			},
+			{
+				"internalType": "address",
+				"name": "addr",
+				"type": "address"
+			}
+		],
+		"name": "commitPendingAlias",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -440,6 +471,25 @@
 		"outputs": [
 			{
 				"internalType": "address payable",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"name": "pendingAliases",
+		"outputs": [
+			{
+				"internalType": "address",
 				"name": "",
 				"type": "address"
 			}

@@ -1,6 +1,7 @@
 const ethers = require('ethers');
 const fs = require('fs');
 const crypto = require('crypto');
+const testkeys = require('./testKeys.js');
 
 const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:7545');
 
@@ -71,7 +72,4 @@ var testDeployAndInit = priv => {
 	});
 }
 
-// CHANGE 'myLocalPriv' TO A PRIVATE KEY OF A FUNDED ADDRESS ON YOUR LOCAL BLOCKCHAIN
-// IMPORTANT: NEVER HARDCODE PRIVATE KEY OF A REAL WALLET HERE OR YOU WILL LOSE ALL YOUR ETHER...
-myLocalPriv = '0xfa9066494f87ea600d2047819f2ddab50f90e034ecf5bd279a55035ff8d555ee';
-testDeployAndInit(myLocalPriv);
+testDeployAndInit(testkeys.priv1);
