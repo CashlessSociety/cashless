@@ -19,6 +19,7 @@
   "dependencies": {
     "bignumber.js": "^9.0.0",
     "eth-sig-util": "^2.5.3",
+    "ethereumjs-util": "^7.0.2",
     "ethers": "^5.0.3",
     "express": "^4.17.1",
     "mongodb": "^3.5.9",
