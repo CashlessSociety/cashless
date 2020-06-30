@@ -1,7 +1,7 @@
 const ethers = require('ethers');
 const fs = require('fs');
 const crypto = require('crypto');
-const testkeys = require('./testKeys.js');
+const testKeys = require('./testKeys.js');
 
 const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:7545');
 
@@ -13,63 +13,59 @@ var hashString = str => {
 	return hash.digest();
 }
 
-var deployCashless = deployerPriv => {
+var deployCashless = async wallet => {
 	let rawABI = fs.readFileSync('bin/Cashless.abi');
 	let contractABI = JSON.parse(rawABI);
 	let rawBIN = fs.readFileSync('bin/Cashless.bin');
 	let contractBIN = JSON.parse(rawBIN)['object'];
-	let wallet = new ethers.Wallet(deployerPriv, provider);
 	let factory = new ethers.ContractFactory(contractABI, contractBIN, wallet);
 	let deployTx = factory.getDeployTransaction(hashString('abc'));
 	deployTx.gasLimit = 6500000;
 	deployTx.gasPrice = 30000000000;
-	return new Promise((resolve, reject) => {
-		wallet.sendTransaction(deployTx)
-		.then(function(tx){
-			provider.getTransactionReceipt(tx.hash)
-			.then(function(receipt) {
-				cashless = new ethers.Contract(receipt.contractAddress, contractABI, provider);
-				resolve(tx.hash);
-			})
-			.catch(function(error) {
-				reject(error);
-			});
-		})
-		.catch(function(error) {
-			reject(error);
-		});
-	});
+	try {
+		let tx = await wallet.sendTransaction(deployTx);
+		let receipt = await provider.getTransactionReceipt(tx.hash);
+		cashless = new ethers.Contract(receipt.contractAddress, contractABI, provider);
+		return receipt.contractAddress;
+	} catch(e) {
+		console.log('error deploying contract:', e.message);
+		return
+	}
 }
 
-var initReserves = (amount, priv) => {
-	let myContract = cashless.connect(new ethers.Wallet(priv, provider));
-	let options = {value: ethers.utils.parseEther(amount), gasLimit: 1000000};
-	return new Promise((resolve, reject) => {
-		myContract.functions.createReserves(options)
-		.then(function(result) {
-			resolve(result);
-		})
-		.catch(function(error) {
-			reject(error);
-		});
-	});
+var initReserves = async (wallet, fundAmountEth) => {
+	let myContract = cashless.connect(wallet);
+	let options = {value: ethers.utils.parseEther(fundAmountEth), gasLimit: 1000000};
+	try {
+		let tx = await myContract.functions.createReserves(options);
+		return tx;
+	} catch(e) {
+		console.log('error creating reserves:', e.message);
+		return
+	}
 }
 
-var testDeployAndInit = priv => {
-	deployCashless(priv)
-	.then(txHash => {
+var runTests = async (wallet1, wallet2, wallet3) => {
+	try {
+		let txHash = await deployCashless(wallet1);
 		console.log("deployed contract:", txHash, "\naddress:", cashless.address);
-		initReserves('10.0', priv)
-		.then(tx => {
-			console.log("created reserves:", tx.hash);
-		})
-		.catch(error => {
-			console.log("error createing reserves:", error.message);
-		});
-	})
-	.catch(error => {
-		console.log("error deploying:", error.message);
-	});
+		let tx1 = await initReserves(wallet1, '10.0');
+		console.log("created reserves (1):", tx1.hash);
+		let tx2 = await initReserves(wallet2, '0.0');
+		console.log("created reserves (2):", tx2.hash);
+		let tx3 = await initReserves(wallet3, '0.0');
+		console.log("created reserves (3):", tx3.hash);
+		return 'success!';
+	} catch(e) {
+		console.log('error in test:', e.message);
+		return 'fail!';
+	}
 }
 
-testDeployAndInit(testkeys.priv1);
+(async () => {
+	wallet1 = new ethers.Wallet(testKeys.priv1, provider);
+	wallet2 = new ethers.Wallet(testKeys.priv2, provider);
+	wallet3 = new ethers.Wallet(testKeys.priv3, provider);
+	let result = await runTests(wallet1, wallet2, wallet3);
+	console.log(result);
+})();
