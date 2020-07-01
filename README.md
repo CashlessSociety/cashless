@@ -23,7 +23,7 @@ Choose 'quickstart'
 
 4. Copy private keys from ganache into line
 
-Click on the 'key' for one address and get the private key, copy it into the obvious place in testKeys.js
+Click on the 'key' for three addresses and get the private key, copy it into the obvious place in `testKeys.js`
 
 ![private key](./doc/ganache_priv_keys.png)
 
