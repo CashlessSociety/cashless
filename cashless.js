@@ -39,7 +39,6 @@ var deployCashless = async wallet => {
 	let factory = new ethers.ContractFactory(contractABI, contractBIN, wallet);
 	let deployTx = factory.getDeployTransaction(randomHash());
 	deployTx.gasLimit = 6700000;
-	deployTx.gasPrice = 30000000000;
 	try {
 		let tx = await wallet.sendTransaction(deployTx);
 		let receipt = await provider.getTransactionReceipt(tx.hash);
@@ -53,7 +52,7 @@ var deployCashless = async wallet => {
 
 var initReserves = async (wallet, fundAmountEth) => {
 	let myContract = cashless.connect(wallet);
-	let options = {value: ethers.utils.parseEther(fundAmountEth), gasLimit: 1000000};
+	let options = {value: ethers.utils.parseEther(fundAmountEth), gasLimit: 90000};
 	try {
 		let tx = await myContract.functions.createReserves(options);
 		return tx;
@@ -65,24 +64,24 @@ var initReserves = async (wallet, fundAmountEth) => {
 
 var fundReserves = async (wallet, amountEth, addressToFund) => {
 	let myContract = cashless.connect(wallet);
-	let options = {value: ethers.utils.parseEther(amountEth), gasLimit: 1000000};
+	let options = {value: ethers.utils.parseEther(amountEth), gasLimit: 50000};
 	try {
 		let tx = await myContract.functions.fundReserves(addressToFund, options);
 		return tx;
 	} catch(e) {
-		console.log('error creating reserves:', e.message);
+		console.log('error funding reserves:', e.message);
 		return
 	}
 }
 
 var withdrawReserves = async (wallet, amountEth, receiverAddress, tipAmountEth) => {
 	let myContract = cashless.connect(wallet);
-	let options = {gasLimit: 1000000};
+	let options = {gasLimit: 50000};
 	try {
 		let tx = await myContract.functions.withdrawReserves(ethers.utils.parseEther(amountEth), receiverAddress, ethers.utils.parseEther(tipAmountEth), options);
 		return tx;
 	} catch(e) {
-		console.log('error creating reserves:', e.message);
+		console.log('error withdrawing reserves:', e.message);
 		return
 	}
 }
@@ -97,9 +96,38 @@ var signClaim = async (wallet, claimData) => {
 
 var proposeSettlement = async (wallet, claimData, sig1, sig2) => {
 	let myContract = cashless.connect(wallet);
-	let options = {gasLimit: 1000000};
-	let tx = await myContract.functions.proposeSettlement(claimData, [sig1.v, sig2.v], [sig1.r, sig2.r], [sig1.s, sig2.s], options);
-	return tx;
+	let options = {gasLimit: 800000};
+	try{
+		let tx = await myContract.functions.proposeSettlement(claimData, [sig1.v, sig2.v], [sig1.r, sig2.r], [sig1.s, sig2.s], options);
+		return tx;
+	} catch(e) {
+		console.log("error proposing settlement:", e.message);
+		return
+	}
+}
+
+var issuePendingAlias = async (wallet, name) => {
+	let myContract = cashless.connect(wallet);
+	let options = {gasLimit: 100000};
+	try {
+		let tx = await myContract.functions.addPendingAlias(name, options);
+		return tx;
+	} catch(e) {
+		console.log("error issuing pending alias:", e.message);
+		return
+	}
+}
+
+var commitPendingAlias = async (wallet, name, address) => {
+	let myContract = cashless.connect(wallet);
+	let options = {gasLimit: 100000};
+	try {
+		let tx = await myContract.functions.commitPendingAlias(name, address, options);
+		return tx;
+	} catch(e) {
+		console.log("error committing pending alias:", e.message);
+		return
+	}
 }
 
 var testBasicClaim = async (wallet1, wallet2) => {
@@ -122,6 +150,33 @@ var testBasicClaim = async (wallet1, wallet2) => {
 	}
 }
 
+var testClaimToFutureMember = async (memberWallet, futureWallet) => {
+	try {
+		let tx1 = await fundReserves(memberWallet, '1.95', memberWallet.address);
+		console.log("funded reserves:", tx1.hash);
+		let h1 = randomHash();
+		let name = hashString('somehuman@gmail.com');
+		let claim = abi.rawEncode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], [[ethers.utils.parseEther('1.95').toString(), 0, now()-10000, now()+1000000], [memberWallet.address, emptyAddress], [h1, name, emptyBytes32], 1]);
+		console.log('created claim:', claim);
+		let sig1 = await signClaim(memberWallet, claim);
+		let sig2 = await signClaim(futureWallet, claim);
+		let tx2 = await issuePendingAlias(memberWallet, name);
+		console.log("pending alias proposed:", tx2.hash);
+		let tx3 = await initReserves(futureWallet, '0.0');
+		console.log("created reserves (3):", tx3.hash);
+		let tx4 = await commitPendingAlias(memberWallet, name, futureWallet.address);
+		console.log("pending alias committed:", tx4.hash);
+		let tx5 = await proposeSettlement(memberWallet, claim, sig1, sig2);
+		console.log("settlement proposed:", tx5.hash);
+		let tx6 = await withdrawReserves(futureWallet, '1.85', futureWallet.address, '0.1');
+		console.log("withdraw complete:", tx6.hash);
+		return true;
+	} catch(e) {
+		console.log('error in testClaimToFutureMember:', e.message);
+		return false;
+	}
+}
+
 var runTests = async (wallet1, wallet2, wallet3) => {
 	try {
 		let txHash = await deployCashless(wallet1);
@@ -130,9 +185,11 @@ var runTests = async (wallet1, wallet2, wallet3) => {
 		console.log("created reserves (1):", tx1.hash);
 		let tx2 = await initReserves(wallet2, '0.0');
 		console.log("created reserves (2):", tx2.hash);
-		let tx3 = await initReserves(wallet3, '0.0');
-		console.log("created reserves (3):", tx3.hash);
 		let passed = await testBasicClaim(wallet1, wallet2);
+		if (!passed) {
+			throw '';
+		}
+		passed = await testClaimToFutureMember(wallet1, wallet3);
 		if (!passed) {
 			throw '';
 		}
