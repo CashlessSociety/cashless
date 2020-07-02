@@ -2,6 +2,7 @@ const ethers = require('ethers');
 const fs = require('fs');
 const crypto = require('crypto');
 const ethjsutil = require('ethereumjs-util');
+const abi = require('ethereumjs-abi');
 const testKeys = require('./testKeys.js');
 
 const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:7545');
@@ -37,7 +38,7 @@ var deployCashless = async wallet => {
 	let contractBIN = JSON.parse(rawBIN)['object'];
 	let factory = new ethers.ContractFactory(contractABI, contractBIN, wallet);
 	let deployTx = factory.getDeployTransaction(randomHash());
-	deployTx.gasLimit = 6500000;
+	deployTx.gasLimit = 6700000;
 	deployTx.gasPrice = 30000000000;
 	try {
 		let tx = await wallet.sendTransaction(deployTx);
@@ -106,8 +107,7 @@ var testBasicClaim = async (wallet1, wallet2) => {
 		let tx1 = await fundReserves(wallet1, '8.0', wallet1.address);
 		console.log("funded reserves:", tx1.hash);
 		let h1 = randomHash();
-		let claim = await cashless.functions.encodeClaim([ethers.utils.parseEther('8.0'), 0, now()-10000, now()+1000000], [wallet1.address, wallet2.address], [h1, emptyBytes32, emptyBytes32], 1);
-		claim = claim[0];
+		let claim = abi.rawEncode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], [[ethers.utils.parseEther('8.0').toString(), 0, now()-10000, now()+1000000], [wallet1.address, wallet2.address], [h1, emptyBytes32, emptyBytes32], 1]);
 		console.log('created claim:', claim);
 		let sig1 = await signClaim(wallet1, claim);
 		let sig2 = await signClaim(wallet2, claim);
