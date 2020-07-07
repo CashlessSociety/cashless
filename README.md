@@ -14,17 +14,15 @@ git clone https://github.com/superarius/cashless.git
 cd cashless
 ```
 
-3. Start Ganache
+3. Start Ganache CLI (in a separate terminal)
 
 ```
 ganache-cli --seed cashless-dev
 ```
 
 
-6. Run tests (this will execute against local server)
+4. Run tests (this will execute against local server)
 
 ```
 node cashless.js
 ```
-
-arrive slush flush reveal news popular street seat pool hedgehog position stomach
