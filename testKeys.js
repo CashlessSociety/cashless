@@ -1,4 +1,4 @@
 // -- YOUR -- LOCAL -- PRIVATE -- KEY -- BELOW
-exports.priv1 = '0xfa9066494f87ea600d2047819f2ddab50f90e034ecf5bd279a55035ff8d555ee';
-exports.priv2 = '0x44ad5d96637fe21728a16b2aa7c4c35eb6c548f3f4a7724101e4747c2e7a1c21';
-exports.priv3 = '0x755324529362e2e77d0bc3433b20f18955fcc4d45a6ab14b6183f18f6d1d2d6c';
+exports.priv1 = '0xb56c2a914594d10f9e12e57340a07aaf7732c6ac11c1874e93f45555f07a4a85';
+exports.priv2 = '0x6a97643c7b6dd3c9e184d0dfb56ca4ddd2441319b60ca16436e5dc8569a5e53e';
+exports.priv3 = '0xc2682aa2931a7046a4a3859f010306fdee2bc8690b55c75e010af9c79a3dbe4c';

@@ -1,5 +1,6 @@
-pragma solidity >=0.6.0;
+pragma solidity >=0.5.0;
 import "./SafeMath.sol";
+import "./CashlessLib.sol";
 
 contract Cashless {
     // Precomputed hash for EIP712 domain separator
@@ -165,7 +166,7 @@ contract Cashless {
         require(reserves[accountOwner].claims[claimID].length > 0);
         uint256 index = reserves[accountOwner].claims[claimID].length - 1;
         (uint256[4] memory values, address[2] memory addrs, bytes32[3] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][index].claimData, (uint256[4], address[2], bytes32[3], uint8));
-        Claim memory claim = Claim(ids[0], payable(address(addrs[0])), payable(address(addrs[1])), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
+        Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
         require(SafeMath.add(reserves[accountOwner].proposalTimestamps[claimID][1], claim.disputeDuration) < now);
         require(claim.amount > 0);
         closeSettlement(accountOwner, claimID);
@@ -173,7 +174,7 @@ contract Cashless {
     
     function proposeLoop(bytes32 proposalName, address[] memory loop, uint256 minFlow, uint256 lockTimestamp) public {
         require(loop.length >= 2);
-        bytes32 id = getLoopID(proposalName, loop);
+        bytes32 id = CashlessLib.getLoopID(proposalName, loop);
         bytes32 nil;
         require(loops[id].proposalName == nil);
         loops[id].proposalName = proposalName;
@@ -208,7 +209,7 @@ contract Cashless {
     // Internal (Protected) State Modifying functions
     function verifySettlement(bytes memory claimData, uint8[2] memory sigsV, bytes32[2] memory sigsR, bytes32[2] memory sigsS, bool isDispute) internal view returns (address, bytes32, uint256) {
         (uint256[4] memory values, address[2] memory addrs, bytes32[3] memory ids, uint8 nonce) = abi.decode(claimData, (uint256[4], address[2], bytes32[3], uint8));
-        Claim memory claim = Claim(ids[0], payable(address(addrs[0])), payable(address(addrs[1])), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
+        Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
         require(reserves[claim.sender].owner == claim.sender);
         bytes32 id;
         if (claim.loopID != id) {
@@ -219,12 +220,12 @@ contract Cashless {
         // minimum required duration between vest and void time
         require(SafeMath.sub(claim.voidTimestamp, claim.vestTimestamp) >= minVestDuration);
         require(now > claim.vestTimestamp);
-        id = getClaimID(claim.claimName, claim.sender, claim.receiver, claim.receiverAlias);
+        id = CashlessLib.getClaimID(claim.claimName, claim.sender, claim.receiver, claim.receiverAlias);
         if (isDispute) {
             require(reserves[claim.sender].claims[id].length > 0);
             uint256 lastIndex = reserves[claim.sender].claims[id].length - 1;
             (values, addrs, ids, nonce) = abi.decode(reserves[claim.sender].claims[id][lastIndex].claimData, (uint256[4], address[2], bytes32[3], uint8));
-            Claim memory priorClaim = Claim(ids[0], payable(address(addrs[0])), payable(address(addrs[1])), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
+            Claim memory priorClaim = Claim(ids[0], address(addrs[0]), address(addrs[1]), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
             require(SafeMath.add(reserves[claim.sender].proposalTimestamps[id][1], priorClaim.disputeDuration) > now);
             require(claim.nonce > priorClaim.nonce);
         } else {
@@ -244,7 +245,7 @@ contract Cashless {
         require(reserves[accountOwner].claims[claimID].length > 0);
         uint256 lastIndex = reserves[accountOwner].claims[claimID].length - 1;
         (uint256[4] memory values, address[2] memory addrs, bytes32[3] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][lastIndex].claimData, (uint256[4], address[2], bytes32[3], uint8));
-        Claim memory claim = Claim(ids[0], payable(address(addrs[0])), payable(address(addrs[1])), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
+        Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
         uint256 amount = getAdjustedClaimAmount(accountOwner, claimID);
         reserves[claim.sender].grossClaimed = SafeMath.sub(reserves[claim.sender].grossClaimed, amount);
         address receiver;
@@ -284,11 +285,11 @@ contract Cashless {
         return validateLoopClaim(claimData1, claimData2, loopID);
     }
     
-    function validateLoopClaim(bytes memory priorClaimData, bytes memory claimData, bytes32 loopID) internal view returns (address, address) {
+    function validateLoopClaim(bytes memory priorClaimData, bytes memory claimData, bytes32 loopID) internal  view  returns (address, address) {
         (uint256[4] memory values, address[2] memory addrs, bytes32[3] memory ids, uint8 nonce) = abi.decode(priorClaimData, (uint256[4], address[2], bytes32[3], uint8));
-        Claim memory oldClaim = Claim(ids[0], payable(address(addrs[0])), payable(address(addrs[1])), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
+        Claim memory oldClaim = Claim(ids[0], address(addrs[0]), address(addrs[1]), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
         (values, addrs, ids, nonce) = abi.decode(claimData, (uint256[4], address[2], bytes32[3], uint8));
-        Claim memory newClaim = Claim(ids[0], payable(address(addrs[0])), payable(address(addrs[1])), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
+        Claim memory newClaim = Claim(ids[0], address(addrs[0]), address(addrs[1]), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
         require(newClaim.loopID==loopID);
         require(oldClaim.loopID!=loopID);
         require(newClaim.nonce==oldClaim.nonce+1);
@@ -298,20 +299,26 @@ contract Cashless {
         require(oldClaim.receiverAlias==newClaim.receiverAlias);
         require(loops[loopID].minFlow > 0);
         require(SafeMath.sub(oldClaim.amount, newClaim.amount) == loops[loopID].minFlow);
-        return (oldClaim.sender, oldClaim.receiver);
+        address receiver;
+        if (oldClaim.receiver == receiver) {
+            receiver = aliases[oldClaim.receiverAlias];
+        } else {
+            receiver = oldClaim.receiver;
+        }
+        return (oldClaim.sender, receiver);
     }
     
     // Public View/Pure functions
     function verifyClaimSig(bytes memory claimData, uint8 v, bytes32 r, bytes32 s, bool isOwner) public view returns (bool) {
         (uint256[4] memory values, address[2] memory addrs, bytes32[3] memory ids, uint8 nonce) = abi.decode(claimData, (uint256[4], address[2], bytes32[3], uint8));
-        Claim memory claim = Claim(ids[0], payable(address(addrs[0])), payable(address(addrs[1])), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
+        Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
         if (0 >= claim.nonce) {
             return false;
         }
         if (SafeMath.sub(claim.voidTimestamp, claim.vestTimestamp) < minVestDuration) {
             return false;
         }
-        bytes32 hash = hashClaimData(claimData);
+        bytes32 hash = CashlessLib.hashClaimData(claimData, DOMAIN_SEPARATOR);
         address signer;
         if (isOwner) {
             signer = claim.sender;
@@ -327,24 +334,12 @@ contract Cashless {
         }
         return true;
     }
-
-    function hashClaimData(bytes memory data) public view returns (bytes32) {
-        return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, keccak256(data)));
-    }
-    
-    function getClaimID(bytes32 claimName, address sender, address receiver, bytes32 receiverAlias) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(claimName, sender, receiver, receiverAlias));
-    }
-    
-    function getLoopID(bytes32 proposalName, address[] memory loop) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(proposalName, loop));
-    }
     
     function getAdjustedClaimAmount(address accountOwner, bytes32 claimID) public view returns (uint256) {
         require(reserves[accountOwner].claims[claimID].length > 0);
         uint256 lastIndex = reserves[accountOwner].claims[claimID].length - 1;
         (uint256[4] memory values, address[2] memory addrs, bytes32[3] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][lastIndex].claimData, (uint256[4], address[2], bytes32[3], uint8));
-        Claim memory claim = Claim(ids[0], payable(address(addrs[0])), payable(address(addrs[1])), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
+        Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), ids[1], nonce, values[0], values[1], values[2], values[3], ids[2]);
         uint256 numerator = SafeMath.mul(100, SafeMath.sub(reserves[accountOwner].proposalTimestamps[claimID][0], claim.vestTimestamp));
         uint256 denominator = SafeMath.sub(claim.voidTimestamp, claim.vestTimestamp);
         uint256 percentLost = SafeMath.div(numerator, denominator);
@@ -366,15 +361,7 @@ contract Cashless {
     function getLoopStatus(bytes32 loopID) public view returns (address[] memory, address[] memory) {
         return (loops[loopID].loop, loops[loopID].committed);
     }
-    
-    //function encodeClaim(uint256[4] memory values, address[2] memory addrs, bytes32[3] memory ids, uint8 nonce) public pure returns (bytes memory)  {
-        //return abi.encode(values, addrs, ids, nonce);
-    //}
-    
-    //function decodeClaim(bytes memory claimData) public pure returns (uint256[4] memory, address[2] memory, bytes32[3] memory, uint8) {
-        //return abi.decode(claimData, (uint256[4], address[2], bytes32[3], uint8));
-    //}
 
     // Fallback Funtion
-    fallback () external {}
+    function () external {}
 }

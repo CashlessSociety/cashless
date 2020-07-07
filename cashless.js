@@ -5,11 +5,12 @@ const ethjsutil = require('ethereumjs-util');
 const abi = require('ethereumjs-abi');
 const testKeys = require('./testKeys.js');
 
-const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:7545');
+const provider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545');
 const ecsign = ethjsutil.ecsign;
 const emptyBytes32 = Buffer.alloc(32);
 const emptyAddress = '0x0000000000000000000000000000000000000000';
 var cashless;
+var cashlessLib;
 
 var hashString = str => {
 	let hash = crypto.createHash('sha256');
@@ -32,17 +33,28 @@ var now = () => {
 }
 
 var deployCashless = async wallet => {
-	let rawABI = fs.readFileSync('bin/Cashless.abi');
-	let contractABI = JSON.parse(rawABI);
-	let rawBIN = fs.readFileSync('bin/Cashless.bin');
-	let contractBIN = JSON.parse(rawBIN)['object'];
-	let factory = new ethers.ContractFactory(contractABI, contractBIN, wallet);
-	let deployTx = factory.getDeployTransaction(randomHash());
-	deployTx.gasLimit = 6700000;
+	let lib = JSON.parse(fs.readFileSync('build/contracts/CashlessLibPub.json'));
+	let c = JSON.parse(fs.readFileSync('build/contracts/Cashless.json'));
+	let factory = new ethers.ContractFactory(lib["abi"], lib["bytecode"], wallet);
+	let deployTx = factory.getDeployTransaction();
+	deployTx.gasLimit = 500000;
+	console.log("Deploying lib...");
 	try {
 		let tx = await wallet.sendTransaction(deployTx);
 		let receipt = await provider.getTransactionReceipt(tx.hash);
-		cashless = new ethers.Contract(receipt.contractAddress, contractABI, provider);
+		cashlessLib = new ethers.Contract(receipt.contractAddress, lib["abi"], provider);
+	} catch(e) {
+		console.log('error deploying lib:', e.message);
+		return
+	}
+	factory = new ethers.ContractFactory(c["abi"], c["bytecode"], wallet);
+	deployTx = factory.getDeployTransaction(randomHash());
+	deployTx.gasLimit = 6721975;
+	console.log("Deploying cashless...");
+	try {
+		let tx = await wallet.sendTransaction(deployTx);
+		let receipt = await provider.getTransactionReceipt(tx.hash);
+		cashless = new ethers.Contract(receipt.contractAddress, c["abi"], provider);
 		return receipt.contractAddress;
 	} catch(e) {
 		console.log('error deploying contract:', e.message);
@@ -76,7 +88,7 @@ var fundReserves = async (wallet, amountEth, addressToFund) => {
 
 var withdrawReserves = async (wallet, amountEth, receiverAddress, tipAmountEth) => {
 	let myContract = cashless.connect(wallet);
-	let options = {gasLimit: 50000};
+	let options = {gasLimit: 60000};
 	try {
 		let tx = await myContract.functions.withdrawReserves(ethers.utils.parseEther(amountEth), receiverAddress, ethers.utils.parseEther(tipAmountEth), options);
 		return tx;
@@ -87,7 +99,9 @@ var withdrawReserves = async (wallet, amountEth, receiverAddress, tipAmountEth) 
 }
 
 var signClaim = async (wallet, claimData) => {
-	let h = await cashless.functions.hashClaimData(claimData);
+	let ds = await cashless.functions.DOMAIN_SEPARATOR();
+	ds = ds[0];
+	let h = await cashlessLib.functions.hashClaimData(claimData, ds);
 	h = h[0].substring(2);
 	let bh = Uint8Array.from(Buffer.from(h, 'hex'));
 	let priv = Uint8Array.from(Buffer.from(wallet.privateKey.substring(2), 'hex'));
@@ -115,6 +129,16 @@ var proposeLoop = async (wallet, loopName, addresses, minFlow, lockTime) => {
 	} catch(e) {
 		console.log("error proposing loop:", e.message);
 		return		
+	}
+}
+
+var encodeLoopClaim = async (claim, sig1, sig2) => {
+	try {
+		let data = await cashlessLib.encodeLoopClaim(claim, [sig1.v, sig2.v], [sig1.r, sig2.r], [sig1.s, sig2.s]);
+		return data;
+	} catch(e) {
+		console.log("error encoding loop claim:", e.message);
+		return
 	}
 }
 
@@ -219,7 +243,7 @@ var testBasicCyclicReciprocity = async (wallet1, wallet2, wallet3) => {
 		let claim31sig1 = await signClaim(wallet3, claim31);
 		let claim31sig2 = await signClaim(wallet1, claim31);
 		let loopName = randomHash();
-		let loopID = await cashless.functions.getLoopID(loopName, [wallet1.address, wallet2.address, wallet3.address]);
+		let loopID = await cashlessLib.functions.getLoopID(loopName, [wallet1.address, wallet2.address, wallet3.address]);
 		loopID = loopID[0];
 		console.log("got loop ID:", loopID);
 		let claim12b = abi.rawEncode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], [[ethers.utils.parseEther('6.0').toString(), 0, now()-10000, now()+1000000], [wallet1.address, wallet2.address], [h1, emptyBytes32, loopID], 2]);
@@ -230,22 +254,22 @@ var testBasicCyclicReciprocity = async (wallet1, wallet2, wallet3) => {
 		console.log('created claim23b:', claim23b);
 		let claim23bsig1 = await signClaim(wallet2, claim23b);
 		let claim23bsig2 = await signClaim(wallet3, claim23b);
-		let claim31b = abi.rawEncode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], [[0, 0, now()-10000, now()+1000000], [wallet3.address, wallet1.address], [h1, emptyBytes32, loopID], 2]);
+		let claim31b = abi.rawEncode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], [[ethers.utils.parseEther('0.0').toString(), 0, now()-10000, now()+1000000], [wallet3.address, wallet1.address], [h1, emptyBytes32, loopID], 2]);
 		console.log('created claim31b:', claim31b);
 		let claim31bsig1 = await signClaim(wallet3, claim31b);
 		let claim31bsig2 = await signClaim(wallet1, claim31b);
 		let tx2 = await proposeLoop(wallet1, loopName, [wallet1.address, wallet2.address, wallet3.address], ethers.utils.parseEther('4.0'), now()+1000000);
 		console.log("loop proposed:", tx2.hash);
-		let encodedLoopClaim12 = abi.rawEncode(["bytes", "uint8[2]", "bytes32[2]", "bytes32[2]"], [claim12, [claim12sig1.v, claim12sig2.v], [claim12sig1.r, claim12sig2.r], [claim12sig1.s, claim12sig2.s]]);
-		let encodedLoopClaim12b = abi.rawEncode(["bytes", "uint8[2]", "bytes32[2]", "bytes32[2]"], [claim12b, [claim12bsig1.v, claim12bsig2.v], [claim12bsig1.r, claim12bsig2.r], [claim12bsig1.s, claim12bsig2.s]]);
+		let encodedLoopClaim12 = await encodeLoopClaim(claim12, claim12sig1, claim12sig2);
+		let encodedLoopClaim12b = await encodeLoopClaim(claim12b, claim12bsig1, claim12bsig2);
 		let tx3 = await commitLoopClaim(wallet3, loopID, encodedLoopClaim12, encodedLoopClaim12b);
 		console.log("committed to loop proposal (12):", tx3.hash);
-		let encodedLoopClaim23 = abi.rawEncode(["bytes", "uint8[2]", "bytes32[2]", "bytes32[2]"], [claim23, [claim23sig1.v, claim23sig2.v], [claim23sig1.r, claim23sig2.r], [claim23sig1.s, claim23sig2.s]]);
-		let encodedLoopClaim23b = abi.rawEncode(["bytes", "uint8[2]", "bytes32[2]", "bytes32[2]"], [claim23b, [claim23bsig1.v, claim23bsig2.v], [claim23bsig1.r, claim23bsig2.r], [claim23bsig1.s, claim23bsig2.s]]);
-		let tx4 = await commitLoopClaim(wallet3, loopID, encodedLoopClaim23, encodedLoopClaim32b);
+		let encodedLoopClaim23 = await encodeLoopClaim(claim23, claim23sig1, claim23sig2);
+		let encodedLoopClaim23b = await encodeLoopClaim(claim23b, claim23bsig1, claim23bsig2);
+		let tx4 = await commitLoopClaim(wallet3, loopID, encodedLoopClaim23, encodedLoopClaim23b);
 		console.log("committed to loop proposal (23):", tx4.hash);
-		let encodedLoopClaim31 = abi.rawEncode(["bytes", "uint8[2]", "bytes32[2]", "bytes32[2]"], [claim31, [claim31sig1.v, claim31sig2.v], [claim31sig1.r, claim31sig2.r], [claim31sig1.s, claim31sig2.s]]);
-		let encodedLoopClaim31b = abi.rawEncode(["bytes", "uint8[2]", "bytes32[2]", "bytes32[2]"], [claim31b, [claim31bsig1.v, claim31bsig2.v], [claim31bsig1.r, claim31bsig2.r], [claim31bsig1.s, claim31bsig2.s]]);
+		let encodedLoopClaim31 = await encodeLoopClaim(claim31, claim31sig1, claim31sig2);
+		let encodedLoopClaim31b = await encodeLoopClaim(claim31b, claim31bsig1, claim31bsig2);
 		let tx5 = await commitLoopClaim(wallet3, loopID, encodedLoopClaim31, encodedLoopClaim31b);
 		console.log("committed to loop proposal (31):", tx5.hash);
 		let tx6 = await proposeSettlement(wallet1, claim12b, claim12bsig1, claim12bsig2);
