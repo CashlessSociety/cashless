@@ -20,9 +20,16 @@ cd cashless
 ganache-cli --seed cashless-dev
 ```
 
+Alternatively if you want to use Ganache GUI start a workspace with these parameters:
+
+```
+PORT NUMBER: 8545
+MNEMONIC: better salmon blade brick cattle vintage slow earn renew news gold rabbit
+```
+
 
 4. Run tests (this will execute against local server)
 
 ```
-node cashless.js
+node cashlessTest.js
 ```
