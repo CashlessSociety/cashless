@@ -1,7 +1,16 @@
 const ethers = require('ethers');
 const fs = require('fs');
-const crypto = require('crypto');
 const cashless = require('./../cashless.js');
+
+var randomHash = () => {
+	var resultString = '';
+	var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	var charactersLength = characters.length;
+	for ( var i = 0; i < 12; i++ ) {
+	  resultString += characters.charAt(Math.floor(Math.random() * charactersLength));
+	}
+	return cashless.hashString(resultString);
+}
 
 var deployCashless = async (wallet, gasPrice) => {
 	let lib = JSON.parse(fs.readFileSync('./../build/contracts/CashlessLibPub.json'));
@@ -19,7 +28,7 @@ var deployCashless = async (wallet, gasPrice) => {
 		return
 	}
 	factory = new ethers.ContractFactory(c["abi"], c["bytecode"], wallet);
-	deployTx = factory.getDeployTransaction(cashless.randomHash());
+	deployTx = factory.getDeployTransaction(randomHash());
 	deployTx.gasLimit = 6721975;
 	deployTx.gasPrice = gasPrice;
 	console.log("Deploying cashless...");
@@ -38,5 +47,6 @@ var deployCashless = async (wallet, gasPrice) => {
 	let provider = new ethers.providers.JsonRpcProvider(args[2]);
 	let priv = args[3];
 	let wallet = new ethers.Wallet(priv, provider);
-	await deployCashless(wallet, Number(args[4]));
+	let gasPrice = Number(args[4]);
+	await deployCashless(wallet, gasPrice);
 })();

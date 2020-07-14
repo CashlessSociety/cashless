@@ -13,9 +13,7 @@ var bufferToHex = (buffer) => {
 	let providerURL = args[2];
 	let privateKey = args[3];
 	let cashlessAddress = args[4];
-	let cashlessLibAddress = args[5];
-	let claimData = Buffer.from(args[6].substring(2), 'hex');
-	let res = await cashless.signClaim(providerURL, privateKey, cashlessAddress, cashlessLibAddress, claimData, './../build/contracts/');
-	let sig = {v: res.v, r: bufferToHex(res.r), s: bufferToHex(res.s)};
-	console.log("signature:", JSON.stringify(sig));
+	let name = cashless.hashString(args[5]);
+	let res = await cashless.issuePendingAlias(providerURL, privateKey, cashlessAddress, name, './../build/contracts/');
+	console.log("raw alias (sha256 hashed name):", bufferToHex(name));
 })();

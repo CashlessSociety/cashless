@@ -77,15 +77,15 @@ contract Cashless {
     }
     
     // Public State Modifying functions
-    function createReserves() public payable {
-        bytes32 defaultAlias = keccak256(abi.encode(msg.sender));
+    function createReserves(address reservesAddress, uint8 v, bytes32 r, bytes32 s) public {
+        bytes32 hash = CashlessLib.hashClaimData(abi.encode(reservesAddress), DOMAIN_SEPARATOR);
+        bytes32 defaultAlias = keccak256(abi.encode(reservesAddress));
         require(aliases[defaultAlias] == address(0));
-        require(reserves[msg.sender].balance == 0);
-        require(address(reserves[msg.sender].owner) == address(0));
-        require(msg.value > flatWithdrawFee || msg.value == 0);
-        aliases[defaultAlias] = msg.sender;
-        reserves[msg.sender].owner = msg.sender;
-        reserves[msg.sender].balance = msg.value;
+        require(reserves[reservesAddress].balance == 0);
+        require(reserves[reservesAddress].owner == address(0));
+        require(ecrecover(hash, v, r, s) == reservesAddress);
+        aliases[defaultAlias] = reservesAddress;
+        reserves[reservesAddress].owner = reservesAddress;
     }
     
     function fundReserves(address accountOwner) public payable {

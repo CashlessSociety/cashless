@@ -86,7 +86,8 @@ var testClaimToFutureMember = async (memberPriv, futurePriv) => {
 		let sig1 = await cashless.signClaim(providerURL, memberPriv, cashlessAddress, cashlessLibAddress, claim, contractDir);
 		let sig2 = await cashless.signClaim(providerURL, futurePriv, cashlessAddress, cashlessLibAddress, claim, contractDir);
 		let tx2 = await cashless.issuePendingAlias(providerURL, memberPriv, cashlessAddress, alias, contractDir);
-		let tx3 = await cashless.initReserves(providerURL, futurePriv, cashlessAddress, '0.0', contractDir);
+		let sigInit = await cashless.signInitReserves(providerURL, futurePriv, cashlessAddress, cashlessLibAddress, contractDir);
+		let tx3 = await cashless.initReserves(providerURL, memberPriv, cashlessAddress, futureWallet.address, sigInit, contractDir);
 		let tx4 = await cashless.commitPendingAlias(providerURL, memberPriv, cashlessAddress, alias, futureWallet.address, contractDir);
 		let tx5 = await cashless.proposeSettlement(providerURL, memberPriv, cashlessAddress, claim, sig1, sig2, contractDir);
 		let tx6 = await cashless.withdrawReserves(providerURL, futurePriv, cashlessAddress, '1.95', contractDir);
@@ -155,10 +156,12 @@ var testBasicCyclicReciprocity = async (priv1, priv2, priv3) => {
 var runTests = async (priv1, priv2, priv3) => {
 	try {
 		let wallet1 = new ethers.Wallet(priv1, provider);
-		let txHash = await deployCashless(wallet1);
-		console.log("deployed contract:", txHash, "\naddress:", cashlessAddress);
-		let tx1h = await cashless.initReserves(providerURL, priv1, cashlessAddress, '10.0', contractDir);
-		let tx2h =  await cashless.initReserves(providerURL, priv2, cashlessAddress, '0.0', contractDir);
+		let addr = await deployCashless(wallet1);
+		console.log("cashless contract address:", addr);
+		let sig1 = await cashless.signInitReserves(providerURL, priv1, cashlessAddress, cashlessLibAddress, contractDir);
+		let tx1h = await cashless.initReserves(providerURL, priv1, cashlessAddress, wallet1.address, sig1, contractDir);
+		let sig2 = await cashless.signInitReserves(providerURL, priv2, cashlessAddress, cashlessLibAddress, contractDir);
+		let tx2h =  await cashless.initReserves(providerURL, priv2, cashlessAddress, cashless.addressFromPriv(providerURL, priv2), sig2, contractDir);
 		let passed = await testBasicClaim(priv1, priv2);
 		if (!passed) {
 			throw '';

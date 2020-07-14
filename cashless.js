@@ -24,10 +24,10 @@ var getCashlessLibContract = (provider, address, contractPath) => {
 	return cashlessLib;
 }
 
-var initReservesTx = async (cashless, amountEth) => {
-	let options = {value: ethers.utils.parseEther(amountEth), gasLimit: 90000};
+var initReservesTx = async (cashless, address, sig) => {
+	let options = {gasLimit: 100000};
 	try {
-		let tx = await cashless.functions.createReserves(options);
+		let tx = await cashless.functions.createReserves(address, sig.v, sig.r, sig.s, options);
 		console.log("new reserves tx hash:", tx.hash);
 		return tx.hash;
 	} catch(e) {
@@ -120,6 +120,12 @@ var commitPendingAliasTx = async (cashless, name, address) => {
 	}
 }
 
+exports.addressFromPriv = (providerURL, privateKey) => {
+	let provider = new ethers.providers.JsonRpcProvider(providerURL);
+	let wallet = new ethers.Wallet(privateKey, provider);
+	return wallet.address;	
+}
+
 exports.encodeClaim = (amountEth, disputeDuration, vestTimestamp, voidTimestamp, senderAddress, receiverAddress, claimName, receiverAlias, loopID, nonce) => {
 	return abi.rawEncode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], [[ethers.utils.parseEther(amountEth).toString(), disputeDuration, vestTimestamp, voidTimestamp], [senderAddress, receiverAddress], [claimName, receiverAlias, loopID], nonce]);
 }
@@ -161,6 +167,21 @@ exports.signClaim = async (providerURL, privateKey, cashlessAddress, cashlessLib
 	return ecsign(bh, priv);
 }
 
+exports.signInitReserves = async (providerURL, privateKey, cashlessAddress, cashlessLibAddress, contractPath) => {
+	let provider = new ethers.providers.JsonRpcProvider(providerURL); 
+	let wallet = new ethers.Wallet(privateKey, provider);
+	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
+	let cashlessLib = getCashlessLibContract(provider, cashlessLibAddress, contractPath);
+	let ds = await cashless.functions.DOMAIN_SEPARATOR();
+	ds = ds[0];
+	let data = abi.rawEncode(["address"], [wallet.address]);
+	let h = await cashlessLib.functions.hashClaimData(data, ds);
+	h = h[0].substring(2);
+	let bh = Uint8Array.from(Buffer.from(h, 'hex'));
+	let priv = Uint8Array.from(Buffer.from(privateKey.substring(2), 'hex'));
+	return ecsign(bh, priv);
+}
+
 exports.fundReserves = async (providerURL, privateKey, cashlessAddress, amountEth, contractPath) => {
 	let provider = new ethers.providers.JsonRpcProvider(providerURL);
 	let wallet = new ethers.Wallet(privateKey, provider);
@@ -169,12 +190,12 @@ exports.fundReserves = async (providerURL, privateKey, cashlessAddress, amountEt
 	return await fundReservesTx(cashless, wallet.address, amountEth);
 }
 
-exports.initReserves = async (providerURL, privateKey, cashlessAddress, amountEth, contractPath) => {
+exports.initReserves = async (providerURL, privateKey, cashlessAddress, reservesAddress, sig, contractPath) => {
 	let provider = new ethers.providers.JsonRpcProvider(providerURL);
 	let wallet = new ethers.Wallet(privateKey, provider);
 	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
 	cashless = cashless.connect(wallet);
-	return await initReservesTx(cashless, amountEth);
+	return await initReservesTx(cashless, reservesAddress, sig);
 }
 
 exports.withdrawReserves = async (providerURL, privateKey, cashlessAddress, amountEth, contractPath) => {

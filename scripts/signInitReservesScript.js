@@ -14,8 +14,7 @@ var bufferToHex = (buffer) => {
 	let privateKey = args[3];
 	let cashlessAddress = args[4];
 	let cashlessLibAddress = args[5];
-	let claimData = Buffer.from(args[6].substring(2), 'hex');
-	let res = await cashless.signClaim(providerURL, privateKey, cashlessAddress, cashlessLibAddress, claimData, './../build/contracts/');
+	let res = await cashless.signInitReserves(providerURL, privateKey, cashlessAddress, cashlessLibAddress, './../build/contracts/');
 	let sig = {v: res.v, r: bufferToHex(res.r), s: bufferToHex(res.s)};
 	console.log("signature:", JSON.stringify(sig));
 })();
