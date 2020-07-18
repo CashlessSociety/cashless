@@ -130,6 +130,10 @@ exports.encodeClaim = (amountEth, disputeDuration, vestTimestamp, voidTimestamp,
 	return abi.rawEncode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], [[ethers.utils.parseEther(amountEth).toString(), disputeDuration, vestTimestamp, voidTimestamp], [senderAddress, receiverAddress], [claimName, receiverAlias, loopID], nonce]);
 }
 
+exports.decodeClaim = (claimData) => {
+	return abi.rawDecode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], claimData);
+}
+
 exports.encodeLoopClaim = async (providerURL, cashlessLibAddress, claimData, sig1, sig2, contractPath) => {
 	let provider = new ethers.providers.JsonRpcProvider(providerURL);
 	let cashlessLib = getCashlessLibContract(provider, cashlessLibAddress, contractPath);
@@ -246,4 +250,10 @@ exports.commitLoopClaim = async (providerURL, privateKey, cashlessAddress, loopI
 	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
 	cashless = cashless.connect(wallet);
 	return await commitLoopClaimTx(cashless, loopID, encoded1, encoded2);
+}
+
+exports.getReserves = async (providerURL, cashlessAddress, address, contractPath) => {
+	let provider = new ethers.providers.JsonRpcProvider(providerURL);
+	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
+	return await cashless.functions.reserves(address);
 }

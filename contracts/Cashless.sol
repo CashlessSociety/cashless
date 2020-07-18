@@ -65,7 +65,7 @@ contract Cashless {
     uint256 public flatWithdrawFee = 10000000;
     uint256 public percentWithdrawFee = 1;
     address payable public networkAdmin;
-    mapping (address => Reserves) reserves;
+    mapping (address => Reserves) public reserves;
     mapping (bytes32 => address) public aliases;
     mapping (bytes32 => address) public pendingAliases;
     mapping (bytes32 => LoopProposal) public loops;
