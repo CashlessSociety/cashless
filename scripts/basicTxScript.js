@@ -1,4 +1,4 @@
-const cashless = require('./../cashless.js');
+const ethers = require('ethers');
 
 (async () => {
 	let args = process.argv;
@@ -11,8 +11,12 @@ const cashless = require('./../cashless.js');
 		let port = args[3];
 		providerURL = "http://127.0.0.1:"+port;
 	}
-	let privateKey = args[4];
-	let cashlessAddress = cashless.getCashlessAddress(network);
-	let amountEth = args[5];
-	let res = await cashless.withdrawReserves(providerURL, privateKey, cashlessAddress, amountEth, './../build/contracts/');
+	let provider = new ethers.providers.JsonRpcProvider(providerURL);
+	let wallet = new ethers.Wallet(args[4], provider);
+	tx = {
+  		to: args[5],
+  		value: ethers.utils.parseEther(args[6])
+	}
+	let tx = await wallet.sendTransaction(tx);
+	console.log("tx:", tx.hash);
 })();

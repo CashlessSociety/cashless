@@ -10,9 +10,17 @@ var bufferToHex = (buffer) => {
 
 (async () => {
 	let args = process.argv;
-	let providerURL = args[2];
-	let privateKey = args[3];
-	let cashlessAddress = args[4];
+	let network = args[2];
+	let providerURL;
+	if (network == "mainnet" || network == "ropsten") {
+		let apiKey = args[3];
+		providerURL = "https://"+network+".infura.io/v3/"+apiKey;
+	} else {
+		let port = args[3];
+		providerURL = "http://127.0.0.1:"+port;
+	}
+	let privateKey = args[4];
+	let cashlessAddress = cashless.getCashlessAddress(network);
 	let name = cashless.hashString(args[5]);
 	let res = await cashless.issuePendingAlias(providerURL, privateKey, cashlessAddress, name, './../build/contracts/');
 	console.log("raw alias (sha256 hashed name):", bufferToHex(name));

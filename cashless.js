@@ -12,6 +12,32 @@ exports.hashString = str => {
 	return hash.digest();
 }
 
+exports.getCashlessAddress = network => {
+	if (network == "mainnet") {
+		return "0x9c30cC03246443D6c9e211c298bBd94Ef889151E";
+	}
+	if (network == "ropsten") {
+		return "0xee0Ef6Bc446c4756E5164Ac6659F4c6D07A2A7BF";
+	}
+	if (network == "dev") {
+		return "0xd4177a2bd990da8416f30c1d9a161cb2c9325f8b";
+	}
+	console.log("error: unrecognized network:", network);
+}
+
+exports.getCashlessLibAddress = network => {
+	if (network == "mainnet") {
+		return "0xa3c93Ea516d2c9f39901f7C4379b3b3a4B281aB8";
+	}
+	if (network == "ropsten") {
+		return "0x10E27c27ba5c5f7c25f5BD24dB9c27Da3390dA85";
+	}
+	if (network == "dev") {
+		return "0xb3869548879977c80564f0a42ff934f0cef4bbc7";
+	}
+	console.log("error: unrecognized network:", network);
+}
+
 var getCashlessContract = (provider, address, contractPath) => {
 	let c = JSON.parse(fs.readFileSync(contractPath+'Cashless.json'));
 	let cashless = new ethers.Contract(address, c["abi"], provider);
