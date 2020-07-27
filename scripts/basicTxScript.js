@@ -13,10 +13,10 @@ const ethers = require('ethers');
 	}
 	let provider = new ethers.providers.JsonRpcProvider(providerURL);
 	let wallet = new ethers.Wallet(args[4], provider);
-	tx = {
+	let tx = {
   		to: args[5],
   		value: ethers.utils.parseEther(args[6])
 	}
-	let tx = await wallet.sendTransaction(tx);
-	console.log("tx:", tx.hash);
+	let txreceipt = await wallet.sendTransaction(tx);
+	console.log("tx:", txreceipt.hash);
 })();
