@@ -38,19 +38,102 @@ exports.getCashlessLibAddress = network => {
 	console.log("error: unrecognized network:", network);
 }
 
-var getCashlessContract = (provider, address, contractPath) => {
-	let c = JSON.parse(fs.readFileSync(contractPath+'Cashless.json'));
-	let cashless = new ethers.Contract(address, c["abi"], provider);
-	return cashless;
+exports.getCashlessContractABI = contractDir => {
+	let c = JSON.parse(fs.readFileSync(contractDir+'Cashless.json'));
+	return c["abi"];	
 }
 
-var getCashlessLibContract = (provider, address, contractPath) => {
-	let lib = JSON.parse(fs.readFileSync(contractPath+'CashlessLibPub.json'));
-	let cashlessLib = new ethers.Contract(address, lib["abi"], provider);
-	return cashlessLib;
+exports.getCashlessLibContractABI = contractDir => {
+	let lib = JSON.parse(fs.readFileSync(contractDir+'CashlessLibPub.json'));
+	return lib["abi"];
 }
 
-var initReservesTx = async (cashless, address, sig) => {
+exports.getContract = (providerURL, contractAddress, contractABI, privateKey) => {
+	let provider = new ethers.providers.JsonRpcProvider(providerURL);
+	let contract = new ethers.Contract(contractAddress, contractABI, provider);
+	if (privateKey != null) {
+		let wallet = new ethers.Wallet(privateKey, provider);
+		contract = contract.connect(wallet);
+	}
+
+	return contract;
+}
+
+exports.addressFromPriv = (providerURL, privateKey) => {
+	let provider = new ethers.providers.JsonRpcProvider(providerURL);
+	let wallet = new ethers.Wallet(privateKey, provider);
+	return wallet.address;
+}
+
+exports.encodeClaim = (amountEth, disputeDuration, vestTimestamp, voidTimestamp, senderAddress, receiverAddress, claimName, receiverAlias, loopID, nonce) => {
+	return abi.rawEncode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], [[ethers.utils.parseEther(amountEth).toString(), disputeDuration, vestTimestamp, voidTimestamp], [senderAddress, receiverAddress], [claimName, receiverAlias, loopID], nonce]);
+}
+
+exports.decodeClaim = (claimData) => {
+	return abi.rawDecode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], claimData);
+}
+
+exports.encodeLoopClaim = async (cashlessLib, claimData, sig1, sig2) => {
+	try {
+		let data = await cashlessLib.encodeLoopClaim(claimData, [sig1.v, sig2.v], [sig1.r, sig2.r], [sig1.s, sig2.s]);
+		return data;
+	} catch(e) {
+		console.log("error encoding loop claim:", e.message);
+		return
+	}
+}
+
+exports.getLoopID = async (cashlessLib, loopName, addresses) => {
+	try {
+		let data = await cashlessLib.functions.getLoopID(loopName, addresses);
+		return data[0];
+	} catch(e) {
+		console.log("error encoding loop claim:", e.message);
+		return
+	} 
+}
+
+exports.signClaim = async (privateKey, cashless, cashlessLib, claimData) => {
+	try {
+		let ds = await cashless.functions.DOMAIN_SEPARATOR();
+		ds = ds[0];
+		let h = await cashlessLib.functions.hashClaimData(claimData, ds);
+		h = h[0].substring(2);
+		let bh = Uint8Array.from(Buffer.from(h, 'hex'));
+		let priv = Uint8Array.from(Buffer.from(privateKey.substring(2), 'hex'));
+		return ecsign(bh, priv);		
+	} catch(e) {
+		console.log("error signing claim:", e.message);
+		return
+	}
+}
+
+exports.signInitReserves = async (privateKey, cashless, cashlessLib, address) => {
+	try {
+		let ds = await cashless.functions.DOMAIN_SEPARATOR();
+		ds = ds[0];
+		let data = abi.rawEncode(["address"], [address]);
+		let h = await cashlessLib.functions.hashClaimData(data, ds);
+		h = h[0].substring(2);
+		let bh = Uint8Array.from(Buffer.from(h, 'hex'));
+		let priv = Uint8Array.from(Buffer.from(privateKey.substring(2), 'hex'));
+		return ecsign(bh, priv);
+	} catch(e) {
+		console.log("error signing init reserves:", e.message);
+		return		
+	}
+}
+
+exports.getReserves = async (cashless, address) => {
+	try {
+		return await cashless.functions.reserves(address);
+	} catch(e) {
+		console.log("error getting reserves:", e.message);
+		return
+	}
+}
+
+exports.initReservesTx = async (cashless, address, sig) => {
 	let options = {gasLimit: 100000};
 	try {
 		let tx = await cashless.functions.createReserves(address, sig.v, sig.r, sig.s, options);
@@ -62,7 +145,7 @@ var initReservesTx = async (cashless, address, sig) => {
 	}
 }
 
-var fundReservesTx = async (cashless, reservesAddress, amountEth) => {
+exports.fundReservesTx = async (cashless, reservesAddress, amountEth) => {
 	let options = {value: ethers.utils.parseEther(amountEth), gasLimit: 50000};
 	try {
 		let tx = await cashless.functions.fundReserves(reservesAddress, options);
@@ -74,7 +157,7 @@ var fundReservesTx = async (cashless, reservesAddress, amountEth) => {
 	}
 }
 
-var withdrawReservesTx = async (cashless, amountEth, receiverAddress, tipAmountEth) => {
+exports.withdrawReservesTx = async (cashless, amountEth, receiverAddress, tipAmountEth) => {
 	let options = {gasLimit: 60000};
 	try {
 		let tx = await cashless.functions.withdrawReserves(ethers.utils.parseEther(amountEth), receiverAddress, ethers.utils.parseEther(tipAmountEth), options);
@@ -86,7 +169,7 @@ var withdrawReservesTx = async (cashless, amountEth, receiverAddress, tipAmountE
 	}
 }
 
-var proposeSettlementTx = async (cashless, claimData, sig1, sig2) => {
+exports.proposeSettlementTx = async (cashless, claimData, sig1, sig2) => {
 	let options = {gasLimit: 800000};
 	try{
 		let tx = await cashless.functions.proposeSettlement(claimData, [sig1.v, sig2.v], [sig1.r, sig2.r], [sig1.s, sig2.s], options);
@@ -98,10 +181,10 @@ var proposeSettlementTx = async (cashless, claimData, sig1, sig2) => {
 	}
 }
 
-var proposeLoopTx = async (cashless, loopName, addresses, minFlow, lockTime) => {
+exports.proposeLoopTx = async (cashless, loopName, addresses, minFlowEth, lockTime) => {
 	let options = {gasLimit: 100000};
 	try {
-		let tx = await cashless.functions.proposeLoop(loopName, addresses, minFlow, lockTime);
+		let tx = await cashless.functions.proposeLoop(loopName, addresses, ethers.utils.parseEther(minFlowEth), lockTime);
 		console.log("loop proposal tx hash:", tx.hash);
 		return tx.hash;
 	} catch(e) {
@@ -110,7 +193,7 @@ var proposeLoopTx = async (cashless, loopName, addresses, minFlow, lockTime) => 
 	}
 }
 
-var commitLoopClaimTx = async (cashless, loopID, encodedClaim1, encodedClaim2) => {
+exports.commitLoopClaimTx = async (cashless, loopID, encodedClaim1, encodedClaim2) => {
 	let options = {gasLimit: 1000000};
 	try {
 		let tx = await cashless.functions.commitLoopClaim(loopID, encodedClaim1, encodedClaim2, options);
@@ -122,10 +205,10 @@ var commitLoopClaimTx = async (cashless, loopID, encodedClaim1, encodedClaim2) =
 	}
 }
 
-var issuePendingAliasTx = async (cashless, name) => {
+exports.issuePendingAliasTx = async (cashless, alias) => {
 	let options = {gasLimit: 100000};
 	try {
-		let tx = await cashless.functions.addPendingAlias(name, options);
+		let tx = await cashless.functions.addPendingAlias(alias, options);
 		console.log("pending alias tx hash:", tx.hash);
 		return tx.hash;
 	} catch(e) {
@@ -134,152 +217,14 @@ var issuePendingAliasTx = async (cashless, name) => {
 	}
 }
 
-var commitPendingAliasTx = async (cashless, name, address) => {
+exports.commitPendingAliasTx = async (cashless, alias, address) => {
 	let options = {gasLimit: 100000};
 	try {
-		let tx = await cashless.functions.commitPendingAlias(name, address, options);
+		let tx = await cashless.functions.commitPendingAlias(alias, address, options);
 		console.log("commit pending alias tx hash:", tx.hash);
 		return tx.hash;
 	} catch(e) {
 		console.log("error committing pending alias:", e.message);
 		return
 	}
-}
-
-exports.addressFromPriv = (providerURL, privateKey) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
-	return wallet.address;	
-}
-
-exports.encodeClaim = (amountEth, disputeDuration, vestTimestamp, voidTimestamp, senderAddress, receiverAddress, claimName, receiverAlias, loopID, nonce) => {
-	return abi.rawEncode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], [[ethers.utils.parseEther(amountEth).toString(), disputeDuration, vestTimestamp, voidTimestamp], [senderAddress, receiverAddress], [claimName, receiverAlias, loopID], nonce]);
-}
-
-exports.decodeClaim = (claimData) => {
-	return abi.rawDecode(["uint256[4]", "address[2]", "bytes32[3]", "uint8"], claimData);
-}
-
-exports.encodeLoopClaim = async (providerURL, cashlessLibAddress, claimData, sig1, sig2, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let cashlessLib = getCashlessLibContract(provider, cashlessLibAddress, contractPath);
-	try {
-		let data = await cashlessLib.encodeLoopClaim(claimData, [sig1.v, sig2.v], [sig1.r, sig2.r], [sig1.s, sig2.s]);
-		return data;
-	} catch(e) {
-		console.log("error encoding loop claim:", e.message);
-		return
-	}
-}
-
-exports.getLoopID = async (providerURL, cashlessLibAddress, loopName, addresses, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let cashlessLib = getCashlessLibContract(provider, cashlessLibAddress, contractPath);
-	try {
-		let data = await cashlessLib.functions.getLoopID(loopName, addresses);
-		return data[0];
-	} catch(e) {
-		console.log("error encoding loop claim:", e.message);
-		return
-	} 
-}
-
-exports.signClaim = async (providerURL, privateKey, cashlessAddress, cashlessLibAddress, claimData, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL); 
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	let cashlessLib = getCashlessLibContract(provider, cashlessLibAddress, contractPath);
-	let ds = await cashless.functions.DOMAIN_SEPARATOR();
-	ds = ds[0];
-	let h = await cashlessLib.functions.hashClaimData(claimData, ds);
-	h = h[0].substring(2);
-	let bh = Uint8Array.from(Buffer.from(h, 'hex'));
-	let priv = Uint8Array.from(Buffer.from(privateKey.substring(2), 'hex'));
-	return ecsign(bh, priv);
-}
-
-exports.signInitReserves = async (providerURL, privateKey, cashlessAddress, cashlessLibAddress, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL); 
-	let wallet = new ethers.Wallet(privateKey, provider);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	let cashlessLib = getCashlessLibContract(provider, cashlessLibAddress, contractPath);
-	let ds = await cashless.functions.DOMAIN_SEPARATOR();
-	ds = ds[0];
-	let data = abi.rawEncode(["address"], [wallet.address]);
-	let h = await cashlessLib.functions.hashClaimData(data, ds);
-	h = h[0].substring(2);
-	let bh = Uint8Array.from(Buffer.from(h, 'hex'));
-	let priv = Uint8Array.from(Buffer.from(privateKey.substring(2), 'hex'));
-	return ecsign(bh, priv);
-}
-
-exports.fundReserves = async (providerURL, privateKey, cashlessAddress, amountEth, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	cashless = cashless.connect(wallet);
-	return await fundReservesTx(cashless, wallet.address, amountEth);
-}
-
-exports.initReserves = async (providerURL, privateKey, cashlessAddress, reservesAddress, sig, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	cashless = cashless.connect(wallet);
-	return await initReservesTx(cashless, reservesAddress, sig);
-}
-
-exports.withdrawReserves = async (providerURL, privateKey, cashlessAddress, amountEth, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	cashless = cashless.connect(wallet);
-	let tipAmount = ((Number(amountEth)/100)+0.00000000002).toString();
-	let amount = (Number(amountEth) - Number(tipAmount)).toString();
-	return await withdrawReservesTx(cashless, amount, wallet.address, tipAmount);
-}
-
-exports.issuePendingAlias = async (providerURL, privateKey, cashlessAddress, name, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	cashless = cashless.connect(wallet);
-	return await issuePendingAliasTx(cashless, name);
-}
-
-exports.commitPendingAlias = async (providerURL, privateKey, cashlessAddress, name, attachAddress, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	cashless = cashless.connect(wallet);
-	return await commitPendingAliasTx(cashless, name, attachAddress);
-}
-
-exports.proposeSettlement = async (providerURL, privateKey, cashlessAddress, claimData, sig1, sig2, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	cashless = cashless.connect(wallet);
-	return await proposeSettlementTx(cashless, claimData, sig1, sig2);
-}
-
-exports.proposeLoop = async (providerURL, privateKey, cashlessAddress, loopName, addresses, minFlow, lockTime, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	cashless = cashless.connect(wallet);
-	return await proposeLoopTx(cashless, loopName, addresses, minFlow, lockTime);
-}
-
-exports.commitLoopClaim = async (providerURL, privateKey, cashlessAddress, loopID, encoded1, encoded2, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	cashless = cashless.connect(wallet);
-	return await commitLoopClaimTx(cashless, loopID, encoded1, encoded2);
-}
-
-exports.getReserves = async (providerURL, cashlessAddress, address, contractPath) => {
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let cashless = getCashlessContract(provider, cashlessAddress, contractPath);
-	return await cashless.functions.reserves(address);
 }
