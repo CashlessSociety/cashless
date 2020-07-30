@@ -11,10 +11,12 @@ const cashless = require('./../cashless.js');
 		let port = args[3];
 		providerURL = "http://127.0.0.1:"+port;
 	}
-	let provider = new ethers.providers.JsonRpcProvider(providerURL);
 	let privateKey = args[4];
-	let cashlessAddress = cashless.getCashlessAddress(network);
-	let name = cashless.hashString(args[5]);
+	let name = args[5];
+	let alias = cashless.hashString(name);
 	let chosenAddress = args[6];
-	let res = await cashless.commitPendingAlias(providerURL, privateKey, cashlessAddress, name, chosenAddress, './../build/contracts/');
+	let cashlessAddress = cashless.getCashlessAddress(network);
+	let cashlessABI = cashless.getCashlessContractABI('./../build/contracts/');
+	let contract = cashless.getContract(providerURL, cashlessAddress, cashlessABI, privateKey);
+	let res = await cashless.commitPendingAliasTx(contract, alias, chosenAddress);
 })();

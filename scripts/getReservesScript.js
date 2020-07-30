@@ -12,9 +12,11 @@ const ethers = require('ethers');
 		let port = args[3];
 		providerURL = "http://127.0.0.1:"+port;
 	}
-	let cashlessAddress = cashless.getCashlessAddress(network);
 	let reservesAddress = args[4];
-	let resp = await cashless.getReserves(providerURL, cashlessAddress, reservesAddress, './../build/contracts/');
+	let cashlessAddress = cashless.getCashlessAddress(network);
+	let cashlessABI = cashless.getCashlessContractABI('./../build/contracts/');
+	let contract = cashless.getContract(providerURL, cashlessAddress, cashlessABI, null);
+	let resp = await cashless.getReserves(contract, reservesAddress);
 	let readable = {balance: (resp["balance"]/ethers.utils.parseEther("1")).toString(), grossClaimed: (resp["grossClaimed"]/ethers.utils.parseEther("1")).toString(), grossDefaulted: (resp["grossDefaulted"]/ethers.utils.parseEther("1")).toString(), grossPaid: (resp["grossPaid"]/ethers.utils.parseEther("1")).toString()};
 	console.log("reserves info:", JSON.stringify(readable));
 })();

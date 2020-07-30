@@ -20,8 +20,11 @@ var bufferToHex = (buffer) => {
 		providerURL = "http://127.0.0.1:"+port;
 	}
 	let privateKey = args[4];
+	let name = args[5];
 	let cashlessAddress = cashless.getCashlessAddress(network);
-	let name = cashless.hashString(args[5]);
-	let res = await cashless.issuePendingAlias(providerURL, privateKey, cashlessAddress, name, './../build/contracts/');
-	console.log("raw alias (sha256 hashed name):", bufferToHex(name));
+	let cashlessABI = cashless.getCashlessContractABI('./../build/contracts/');
+	let contract = cashless.getContract(providerURL, cashlessAddress, cashlessABI, privateKey);
+	let alias = cashless.hashString(name);
+	let res = await cashless.issuePendingAliasTx(contract, alias);
+	console.log("raw alias (sha256 hashed name):", bufferToHex(alias));
 })();

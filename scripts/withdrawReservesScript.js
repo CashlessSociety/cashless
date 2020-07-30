@@ -12,7 +12,12 @@ const cashless = require('./../cashless.js');
 		providerURL = "http://127.0.0.1:"+port;
 	}
 	let privateKey = args[4];
-	let cashlessAddress = cashless.getCashlessAddress(network);
 	let amountEth = args[5];
-	let res = await cashless.withdrawReserves(providerURL, privateKey, cashlessAddress, amountEth, './../build/contracts/');
+	let recvAddress = cashless.addressFromPriv(providerURL, privateKey)
+	let cashlessAddress = cashless.getCashlessAddress(network);
+	let cashlessABI = cashless.getCashlessContractABI('./../build/contracts/');
+	let contract = cashless.getContract(providerURL, cashlessAddress, cashlessABI, privateKey);
+	let tipAmount = ((Number(amountEth)/100)+0.00000000002).toString();
+	let amount = (Number(amountEth) - Number(tipAmount)).toString();
+	let res = await cashless.withdrawReservesTx(contract, amount, recvAddress, tipAmount);
 })();

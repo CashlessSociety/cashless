@@ -20,10 +20,14 @@ var bufferToHex = (buffer) => {
 		providerURL = "http://127.0.0.1:"+port;
 	}
 	let privateKey = args[4];
-	let cashlessAddress = cashless.getCashlessAddress(network);
-	let cashlessLibAddress = cashless.getCashlessLibAddress(network);
 	let claimData = Buffer.from(args[5].substring(2), 'hex');
-	let res = await cashless.signClaim(providerURL, privateKey, cashlessAddress, cashlessLibAddress, claimData, './../build/contracts/');
+	let cashlessAddress = cashless.getCashlessAddress(network);
+	let cashlessABI = cashless.getCashlessContractABI('./../build/contracts/');
+	let cashlessContract = cashless.getContract(providerURL, cashlessAddress, cashlessABI, privateKey);
+	let cashlessLibAddress = cashless.getCashlessLibAddress(network);
+	let cashlessLibABI = cashless.getCashlessLibContractABI('./../build/contracts/');
+	let cashlessLibContract = cashless.getContract(providerURL, cashlessLibAddress, cashlessLibABI, null);
+	let res = await cashless.signClaim(privateKey, cashlessContract, cashlessLibContract, claimData);
 	let sig = {v: res.v, r: bufferToHex(res.r), s: bufferToHex(res.s)};
 	console.log("signature:", JSON.stringify(sig));
 })();
