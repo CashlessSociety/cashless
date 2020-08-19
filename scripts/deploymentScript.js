@@ -44,18 +44,10 @@ var deployCashless = async (wallet, gasPrice) => {
 
 (async () => {
 	let args = process.argv;
-	let network = args[2];
-	let providerURL;
-	if (network == "mainnet" || network == "ropsten") {
-		let apiKey = args[3];
-		providerURL = "https://"+network+".infura.io/v3/"+apiKey;
-	} else {
-		let port = args[3];
-		providerURL = "http://127.0.0.1:"+port;
-	}
+	let providerURL = args[2];
 	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let priv = args[4];
+	let priv = args[3];
 	let wallet = new ethers.Wallet(priv, provider);
-	let gasPrice = Number(args[5]);
+	let gasPrice = Number(args[4]);
 	await deployCashless(wallet, gasPrice);
 })();

@@ -233,7 +233,7 @@ contract Cashless {
                 require(reserves[claim.sender].claimIDs[i] != id);
             }
             require(now < claim.voidTimestamp);
-            require(claim.amount > 0);  
+            require(claim.amount > 0); 
         }
         require(verifyClaimSig(claimData, sigsV[0], sigsR[0], sigsS[0], true));
         require(verifyClaimSig(claimData, sigsV[1], sigsR[1], sigsS[1], false));

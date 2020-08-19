@@ -6,13 +6,15 @@ const abi = require('ethereumjs-abi');
 
 const ecsign = ethjsutil.ecsign;
 
-exports.hashString = str => {
-	let hash = crypto.createHash('sha256');
-	hash.update(str);
-	return hash.digest();
+cashlessContractABI = () => { 
+	return [{"inputs":[{"internalType":"bytes32","name":"salt","type":"bytes32"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"payable":false,"stateMutability":"nonpayable","type":"fallback"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"name":"aliases","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"flatWithdrawFee","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"name":"loops","outputs":[{"internalType":"bytes32","name":"proposalName","type":"bytes32"},{"internalType":"uint256","name":"minFlow","type":"uint256"},{"internalType":"uint256","name":"lockTimestamp","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"minVestDuration","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"networkAdmin","outputs":[{"internalType":"addresspayable","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"name":"pendingAliases","outputs":[{"internalType":"address","name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"percentWithdrawFee","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"reserves","outputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"balance","type":"uint256"},{"internalType":"uint256","name":"grossClaimed","type":"uint256"},{"internalType":"uint256","name":"grossDefaulted","type":"uint256"},{"internalType":"uint256","name":"grossPaid","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"reservesAddress","type":"address"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"createReserves","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"accountOwner","type":"address"}],"name":"fundReserves","outputs":[],"payable":true,"stateMutability":"payable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"},{"internalType":"addresspayable","name":"targetReceiver","type":"address"},{"internalType":"uint256","name":"fee","type":"uint256"}],"name":"withdrawReserves","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes32","name":"newAlias","type":"bytes32"}],"name":"addAlias","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes32","name":"existingAlias","type":"bytes32"}],"name":"deleteAlias","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes32","name":"newAlias","type":"bytes32"}],"name":"addPendingAlias","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes32","name":"newAlias","type":"bytes32"},{"internalType":"address","name":"addr","type":"address"}],"name":"commitPendingAlias","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes","name":"claimData","type":"bytes"},{"internalType":"uint8[2]","name":"sigsV","type":"uint8[2]"},{"internalType":"bytes32[2]","name":"sigsR","type":"bytes32[2]"},{"internalType":"bytes32[2]","name":"sigsS","type":"bytes32[2]"}],"name":"proposeSettlement","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes","name":"claimData","type":"bytes"},{"internalType":"uint8[2]","name":"sigsV","type":"uint8[2]"},{"internalType":"bytes32[2]","name":"sigsR","type":"bytes32[2]"},{"internalType":"bytes32[2]","name":"sigsS","type":"bytes32[2]"}],"name":"disputeSettlement","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"accountOwner","type":"address"},{"internalType":"bytes32","name":"claimID","type":"bytes32"}],"name":"redeemClaim","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes32","name":"proposalName","type":"bytes32"},{"internalType":"address[]","name":"loop","type":"address[]"},{"internalType":"uint256","name":"minFlow","type":"uint256"},{"internalType":"uint256","name":"lockTimestamp","type":"uint256"}],"name":"proposeLoop","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes32","name":"loopID","type":"bytes32"},{"internalType":"bytes","name":"encodedPriorClaim","type":"bytes"},{"internalType":"bytes","name":"encodedClaim","type":"bytes"}],"name":"commitLoopClaim","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"bytes","name":"claimData","type":"bytes"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"},{"internalType":"bool","name":"isOwner","type":"bool"}],"name":"verifyClaimSig","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"accountOwner","type":"address"},{"internalType":"bytes32","name":"claimID","type":"bytes32"}],"name":"getAdjustedClaimAmount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"accountOwner","type":"address"}],"name":"getClaimIDs","outputs":[{"internalType":"bytes32[]","name":"","type":"bytes32[]"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"accountOwner","type":"address"},{"internalType":"bytes32","name":"claimID","type":"bytes32"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"getReservesClaim","outputs":[{"internalType":"bytes","name":"","type":"bytes"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"accountOwner","type":"address"},{"internalType":"bytes32","name":"claimID","type":"bytes32"}],"name":"getReservesSettlement","outputs":[{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"bytes32","name":"loopID","type":"bytes32"}],"name":"getLoopStatus","outputs":[{"internalType":"address[]","name":"","type":"address[]"},{"internalType":"address[]","name":"","type":"address[]"}],"payable":false,"stateMutability":"view","type":"function"}]; 
 }
 
-exports.getCashlessAddress = network => {
+cashlessLibContractABI = () => {
+	return [{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"payable":false,"stateMutability":"nonpayable","type":"fallback"},{"constant":true,"inputs":[{"internalType":"bytes","name":"data","type":"bytes"},{"internalType":"bytes32","name":"domainSeparator","type":"bytes32"}],"name":"hashClaimData","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"bytes32","name":"claimName","type":"bytes32"},{"internalType":"address","name":"sender","type":"address"},{"internalType":"address","name":"receiver","type":"address"},{"internalType":"bytes32","name":"receiverAlias","type":"bytes32"}],"name":"getClaimID","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"bytes32","name":"proposalName","type":"bytes32"},{"internalType":"address[]","name":"loop","type":"address[]"}],"name":"getLoopID","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"pure","type":"function"},{"constant":true,"inputs":[{"internalType":"bytes","name":"a","type":"bytes"},{"internalType":"uint8[2]","name":"b","type":"uint8[2]"},{"internalType":"bytes32[2]","name":"c","type":"bytes32[2]"},{"internalType":"bytes32[2]","name":"d","type":"bytes32[2]"}],"name":"encodeLoopClaim","outputs":[{"internalType":"bytes","name":"","type":"bytes"}],"payable":false,"stateMutability":"pure","type":"function"}];
+}
+
+cashlessAddress = network => {
 	if (network == "mainnet") {
 		return "0x9c30cC03246443D6c9e211c298bBd94Ef889151E";
 	}
@@ -25,7 +27,7 @@ exports.getCashlessAddress = network => {
 	console.log("error: unrecognized network:", network);
 }
 
-exports.getCashlessLibAddress = network => {
+cashlessLibAddress = network => {
 	if (network == "mainnet") {
 		return "0xa3c93Ea516d2c9f39901f7C4379b3b3a4B281aB8";
 	}
@@ -38,18 +40,18 @@ exports.getCashlessLibAddress = network => {
 	console.log("error: unrecognized network:", network);
 }
 
-exports.getCashlessContractABI = contractDir => {
-	let c = JSON.parse(fs.readFileSync(contractDir+'Cashless.json'));
-	return c["abi"];	
+networkFromProviderURL = providerURL => {
+	if (providerURL.includes("infura")) {
+		return providerURL.substring(8, 15);
+	} else {
+		return "dev";
+	}
 }
 
-exports.getCashlessLibContractABI = contractDir => {
-	let lib = JSON.parse(fs.readFileSync(contractDir+'CashlessLibPub.json'));
-	return lib["abi"];
-}
-
-exports.getContract = (providerURL, contractAddress, contractABI, privateKey) => {
+exports.contract = (providerURL, privateKey) => {
 	let provider = new ethers.providers.JsonRpcProvider(providerURL);
+	let contractABI = cashlessContractABI()
+	let contractAddress = cashlessAddress(networkFromProviderURL(providerURL))
 	let contract = new ethers.Contract(contractAddress, contractABI, provider);
 	if (privateKey != null) {
 		let wallet = new ethers.Wallet(privateKey, provider);
@@ -59,9 +61,17 @@ exports.getContract = (providerURL, contractAddress, contractABI, privateKey) =>
 	return contract;
 }
 
-exports.addressFromPriv = (providerURL, privateKey) => {
+exports.libContract = (providerURL) => {
 	let provider = new ethers.providers.JsonRpcProvider(providerURL);
-	let wallet = new ethers.Wallet(privateKey, provider);
+	let contractABI = cashlessLibContractABI()
+	let contractAddress = cashlessLibAddress(networkFromProviderURL(providerURL))
+	let contract = new ethers.Contract(contractAddress, contractABI, provider)
+
+	return contract;
+}
+
+exports.addressFromPriv = privateKey => {
+	let wallet = new ethers.Wallet(privateKey);
 	return wallet.address;
 }
 
@@ -88,13 +98,24 @@ exports.getLoopID = async (cashlessLib, loopName, addresses) => {
 		let data = await cashlessLib.functions.getLoopID(loopName, addresses);
 		return data[0];
 	} catch(e) {
-		console.log("error encoding loop claim:", e.message);
+		console.log("error encoding loop ID:", e.message);
 		return
 	} 
 }
 
-exports.signClaim = async (privateKey, cashless, cashlessLib, claimData) => {
+exports.getClaimID = async (cashlessLib, claimName, senderAddress, receiverAddress, recvAlias) => {
 	try {
+		let data = await cashlessLib.functions.getClaimID(claimName, senderAddress, receiverAddress, recvAlias);
+		return data[0];
+	} catch(e) {
+		console.log("error encoding claim ID:", e.message);
+		return
+	} 
+}
+
+exports.signClaim = async (cashless, cashlessLib, claimData) => {
+	try {
+		let privateKey = cashless.signer.privateKey;
 		let ds = await cashless.functions.DOMAIN_SEPARATOR();
 		ds = ds[0];
 		let h = await cashlessLib.functions.hashClaimData(claimData, ds);
@@ -108,8 +129,10 @@ exports.signClaim = async (privateKey, cashless, cashlessLib, claimData) => {
 	}
 }
 
-exports.signInitReserves = async (privateKey, cashless, cashlessLib, address) => {
+exports.signInitReserves = async (cashless, cashlessLib) => {
 	try {
+		let privateKey = cashless.signer.privateKey;
+		let address = cashless.signer.address;
 		let ds = await cashless.functions.DOMAIN_SEPARATOR();
 		ds = ds[0];
 		let data = abi.rawEncode(["address"], [address]);
@@ -120,7 +143,7 @@ exports.signInitReserves = async (privateKey, cashless, cashlessLib, address) =>
 		return ecsign(bh, priv);
 	} catch(e) {
 		console.log("error signing init reserves:", e.message);
-		return		
+		return
 	}
 }
 
@@ -129,6 +152,16 @@ exports.getReserves = async (cashless, address) => {
 		return await cashless.functions.reserves(address);
 	} catch(e) {
 		console.log("error getting reserves:", e.message);
+		return
+	}
+}
+
+exports.verifyClaimSig = async (cashless, claimData, sig, isSender) => {
+	try {
+		let r = await cashless.functions.verifyClaimSig(claimData, sig.v, sig.r, sig.s, isSender);
+		return r[0];
+	} catch(e) {
+		console.log("error verifying claim sig:", e.message);
 		return
 	}
 }
@@ -145,7 +178,8 @@ exports.initReservesTx = async (cashless, address, sig) => {
 	}
 }
 
-exports.fundReservesTx = async (cashless, reservesAddress, amountEth) => {
+exports.fundReservesTx = async (cashless, amountEth) => {
+	let reservesAddress = cashless.signer.address;
 	let options = {value: ethers.utils.parseEther(amountEth), gasLimit: 50000};
 	try {
 		let tx = await cashless.functions.fundReserves(reservesAddress, options);
@@ -179,6 +213,30 @@ exports.proposeSettlementTx = async (cashless, claimData, sig1, sig2) => {
 		console.log("error proposing settlement:", e.message);
 		return
 	}
+}
+
+exports.disputeSettlementTx = async (cashless, claimData, sig1, sig2) => {
+	let options = {gasLimit: 800000};
+	try{
+		let tx = await cashless.functions.disputeSettlement(claimData, [sig1.v, sig2.v], [sig1.r, sig2.r], [sig1.s, sig2.s], options);
+		console.log("dispute settlement tx hash:", tx.hash);
+		return tx.hash;
+	} catch(e) {
+		console.log("error disputing settlement:", e.message);
+		return
+	}
+}
+
+exports.closeSettlementTx = async (cashless, claimingAddress, claimID) => {
+	let options = {gasLimit: 800000};
+	try {
+		var tx = await cashless.functions.redeemClaim(claimingAddress, claimID, options);
+		console.log("close settlement tx hash:", tx.hash);
+		return tx.hash;
+	} catch(e) {
+		console.log("error closing settlement:", e.message);
+		return
+	}	
 }
 
 exports.proposeLoopTx = async (cashless, loopName, addresses, minFlowEth, lockTime) => {
@@ -227,4 +285,34 @@ exports.commitPendingAliasTx = async (cashless, alias, address) => {
 		console.log("error committing pending alias:", e.message);
 		return
 	}
+}
+
+exports.issueAliasTx = async (cashless, alias) => {
+	let options = {gasLimit: 100000};
+	try {
+		var tx = await cashless.functions.addAlias(alias, options);
+		console.log("add alias tx hash:", tx.hash);
+		return tx.hash;
+	} catch(e) {
+		console.log("error adding alias:", e.message);
+		return
+	}
+}
+
+exports.deleteAliasTx = async (cashless, alias) => {
+	let options = {gasLimit: 100000};
+	try {
+		var tx = await cashless.functions.deleteAlias(alias, options);
+		console.log("delete alias tx hash:", tx.hash);
+		return tx.hash;
+	} catch(e) {
+		console.log("error deleting alias:", e.message);
+		return
+	}
+}
+
+exports.hashString = str => {
+	let hash = crypto.createHash('sha256');
+	hash.update(str);
+	return hash.digest();
 }

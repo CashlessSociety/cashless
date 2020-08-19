@@ -40,25 +40,24 @@ Interaction with cashless contracts is currently handled with a number of Node.j
 
 To use, enter the `/scripts` directory and follow the instructions below.
 
-Note that the first two arguments for each command line script that actually interacts with the blockchain are always a `network` and an `apiKey/port`.
+Note that the first argument for each command line script that interacts with the blockchain (all except encodeClaim and decodeClaim) is a `providerURL`. There are only three possibilites:
 
-The network argument only accepts three valid possibilites: 
-- `mainnet`
-- `ropsten`
-- `dev`
+- `https://mainnet.infura.io/v3/<your-infura-project-id>`
+- `https://ropsten.infura.io/v3/<your-infura-project-id>`
+- `http://127.0.0.1:<port-running-local-blockchain>`
 
-For `mainnet` or `ropsten` the following command line argument must be a valid infura api key. If you are getting 403 errors from your scripts you'll need to whitelist the addresses and contracts you are interacting with at your infura account before proceeding.
+For `mainnet` or `ropsten` you need to use an infura provider (get your own infura project id by signing up at https://infura.io)
 
-The `dev` network is assumed to be running on your local machine, and the following command line argument must be the port of the local blockchain node (**not** an infura api key)
+Passing a local port means you are using the `dev` network. When running in dev mode we assume the dev blockchain was started with same configuration as `ganache-cli --seed cashless-dev` and further assumes the first transaction was the deployment of cashless contracts with the private key at index 0 of that dev environment.
 
-All hex arguments (including private keys) must be 0x prefixed (the only exception is the infura apiKey which should be input exactly as depicted)
+Note: All hex arguments (including private keys) must be 0x prefixed
 
 ### basicTxScript
 
 A simple script for sending ether from an account you control (you need direct access to the private key) to any other account (any ethereum address). You can't set a custom gasPrice or gasLimit.
 
 ```
-node basicTxScript.js <network> <apiKey/port> <sender private key> <receiver address> <amount to send>
+node basicTxScript.js <providerURL> <sender private key> <receiver address> <amount to send>
 ```
 
 ### deploymentScript
@@ -70,7 +69,7 @@ This script deploys the latest version of the cashless reserves contract and cas
 However, when starting a fresh dev server, this script should be run in dev mode before doing anything else, to generate the correct contract addresses for the reserves and library contracts.
 
 ```
-node deploymentScript.js <network> <apiKey/port> <privateKey> <gasPrice in wei>
+node deploymentScript.js <providerURL> <privateKey> <gasPrice in wei>
 ```
 
 Use eth gas station to pick a gasPrice that will be accepted. Remeber to convert it from gwei to wei for the command line argument.
@@ -80,7 +79,7 @@ Use eth gas station to pick a gasPrice that will be accepted. Remeber to convert
 This script is the standard way to initialize a reserves account with the cashless reserves contract. The eth account you use to sign and send the transaction will be the official reserves account owner (currently non-transferrable).
 
 ```
-node initReservesScript.js <network> <apiKey/port> <privateKey>
+node initReservesScript.js <providerURL> <privateKey>
 ```
 
 ### signInitReservesScript and presignedInitReservesScript
@@ -90,7 +89,7 @@ Much like the above script, these two scripts are used to initialize a reserves 
 1. First, use the private key from the account that will become the reserves account owner to sign the necessary initialization data (without sending any transaction to the blockchain yet):
 
 ```
-node signInitReservesScript.js <network> <apiKey/port> <privateKey>
+node signInitReservesScript.js <providerURL> <privateKey>
 ```
 
 This will output a JSON string of the initializing signature.
@@ -100,7 +99,7 @@ This will output a JSON string of the initializing signature.
 3. Finally, the owner of the transaction sending account uses this script to push the transaction and complete the reserves account initialization:
 
 ```
-node presignedInitReservesScript.js <network> <apiKey/port> <privateKey> <new reserves address> '<signature JSON>'
+node presignedInitReservesScript.js <providerURL> <privateKey> <new reserves address> '<signature JSON>'
 ```
 
 This way someone can securely pay the fees to initialize the account on your behalf.
@@ -110,7 +109,7 @@ This way someone can securely pay the fees to initialize the account on your beh
 After initializing reserves, you can fund your reserves account with a specified amount of ether. This transaction must be sent from the existing reserves account owner's address to be accepted.
 
 ```
-node fundReservesScript.js <network> <apiKey/port> <privateKey> <amount in ether>
+node fundReservesScript.js <providerURL> <privateKey> <amount in ether>
 ```
 
 ### getReservesScript
@@ -118,7 +117,7 @@ node fundReservesScript.js <network> <apiKey/port> <privateKey> <amount in ether
 This script simply fetches the current balance and other basic data of a particular reserves account.
 
 ```
-node getReservesScript.js <network> <apiKey/port> <reserves address>
+node getReservesScript.js <providerURL> <reserves address>
 ```
 
 ### withdrawReservesScript
@@ -126,7 +125,7 @@ node getReservesScript.js <network> <apiKey/port> <reserves address>
 This script simply remits eth in reserves to any address desired (only the reserves account owner can authorize this). Withdrawl incurs a small fee to the contract which is calculated under the hood and comes out of the desired amount withdrawn so the remitted amount is actually ~1% less than the amount requested.
 
 ```
-node withdrawReservesScript.js <network> <apiKey/port> <privateKey> <amount in ether>
+node withdrawReservesScript.js <providerURL> <privateKey> <amount in ether>
 ```
 
 ### encodeClaimScript
@@ -156,7 +155,7 @@ example:
 {"amountEth":"1.0", "disputeDuration": 0, "vestTimestamp": 1595274514, "voidTimestamp": 1596274534, "senderAddress": "0x0cBa9455600735CE7D0c8bCb08b9b419B5f87bE4", "receiverAddress": "0x0000000000000000000000000000000000000000", "claimName": "0xff000000000000000000000000000000000000000000000000000000000000ff", "loopID": "0x0000000000000000000000000000000000000000000000000000000000000000", "receiverAlias": "0x558bb489c74920c02fa545fad9fe07e5b2013345b70f9db196f09243e75546d8", "nonce":1}
 ```
 
-returns: the serilaized claim
+returns: the serilaized claim (in hex)
 
 ### decoddeClaimScript
 
@@ -171,7 +170,7 @@ node decodeClaimScript.js <claimData>
 This script takes claim data and signs the claim with a given privateKey. 
 
 ```
-node signClaimScript.js <network> <apiKey/port> <privateKey> <claimData>
+node signClaimScript.js <providerURL> <privateKey> <claimData>
 ```
 
 Only when sending and receiving parties both sign a valid claim correctly and the claim is submitted after the vestTimestamp and is not challenged during a dispute period, do claims actually settle and transfer eth from one reserves to another.
@@ -181,7 +180,7 @@ Only when sending and receiving parties both sign a valid claim correctly and th
 This script takes a claim and the two signatures (sender and receiver's) and pushes them to the blockchain to 'settle' the claim.
 
 ```
-node proposeSettlementScript.js <network> <apiKey/port> <privateKey> <claimData> '<sender signature JSON>' '<receiver signature JSON>'
+node proposeSettlementScript.js <providerURL> <privateKey> <claimData> '<sender signature JSON>' '<receiver signature JSON>'
 ```
 
 (If the claim's disputePeriod is 0 the claim settles immediatley else there is a period of time where a counter-claim with a higher nonce can be sent to the blockchain to invalidate the existing claim before settlement)
@@ -191,7 +190,7 @@ node proposeSettlementScript.js <network> <apiKey/port> <privateKey> <claimData>
 This script takes an `alias` and reserves those particular bytes for use as a reserves account alias, without yet setting the reserves address that this alias attaches to. Only the reserves account who issues the pending alias can finally commit the alias to some **existing** reserves address.
 
 ```
-node issuePendingAliasScript.js <network> <apiKey/port> <privateKey> <name>
+node issuePendingAliasScript.js <providerURL> <privateKey> <name>
 ```
 
 The alias is always the 256 bit hash of some name string (tthe last command line argument). The hashfunc used by this script is hardcoded as SHA256 but in reality any 256 bit hash function will do.
@@ -201,7 +200,7 @@ The alias is always the 256 bit hash of some name string (tthe last command line
 This script commits a pending alias to a reserves account. It can only be executed by the same reserves account that issued the pending alias.
 
 ```
-node commitPendingAliasScript.js <network> <apiKey/port> <privateKey> <name> <chosen reserves Address>
+node commitPendingAliasScript.js <providerURL> <privateKey> <name> <chosen reserves Address>
 ```
 
 This script assumes that the previous script was used to issue the pending alias i.e. that SHA256 was the hash function used when issuing the pending alias for a given name string. (This script cannot currently handle custom hash functions for the name, but the blockchain contract certainly can.)

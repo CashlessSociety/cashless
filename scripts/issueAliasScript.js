@@ -15,6 +15,6 @@ var bufferToHex = (buffer) => {
 	let name = args[4];
 	let contract = cashless.contract(providerURL, privateKey);
 	let alias = cashless.hashString(name);
-	let res = await cashless.issuePendingAliasTx(contract, alias);
+	let res = await cashless.issueAliasTx(contract, alias);
 	console.log("raw alias (sha256 hashed name):", bufferToHex(alias));
 })();

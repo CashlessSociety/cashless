@@ -10,5 +10,5 @@ const cashless = require('./../cashless.js');
 	let contract = cashless.contract(providerURL, privateKey);
 	let sig1 = {v: rawSig1["v"], r: Buffer.from(rawSig1["r"].substring(2), 'hex'), s: Buffer.from(rawSig1["s"].substring(2), "hex")};
 	let sig2 = {v: rawSig2["v"], r: Buffer.from(rawSig2["r"].substring(2), 'hex'), s: Buffer.from(rawSig2["s"].substring(2), "hex")};
-	let res = await cashless.proposeSettlementTx(contract, claimData, sig1, sig2);
+	let res = await cashless.disputeSettlementTx(contract, claimData, sig1, sig2);
 })();
