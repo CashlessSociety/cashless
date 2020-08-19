@@ -5,6 +5,6 @@ const cashless = require('./../cashless.js');
 	let providerURL = args[2];
 	let privateKey = args[3];
 	let amountEth = args[4];
-	let contract = cashless.getContract(providerURL, privateKey);
-	let res = await cashless.fundReservesTx(contract, address, amountEth);
+	let contract = cashless.contract(providerURL, privateKey);
+	let res = await cashless.fundReservesTx(contract, amountEth);
 })();

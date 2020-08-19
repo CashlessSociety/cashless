@@ -5,7 +5,7 @@ const ethers = require('ethers');
 	let args = process.argv;
 	let providerURL = args[2];
 	let reservesAddress = args[3];
-	let contract = cashless.getContract(providerURL, null);
+	let contract = cashless.contract(providerURL, null);
 	let resp = await cashless.getReserves(contract, reservesAddress);
 	if (resp['owner']=='0x0000000000000000000000000000000000000000') {
 		console.log("reserves do not exist");
