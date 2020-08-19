@@ -7,7 +7,7 @@ const cashless = require('./../cashless.js');
 	let amountEth = args[4];
 	let recvAddress = cashless.addressFromPriv(privateKey);
 	let contract = cashless.contract(providerURL, privateKey);
-	let tipAmount = ((Number(amountEth)/100)+0.00000000002).toString();
+	let tipAmount = ((Number(amountEth)/100)+0.0001).toString();
 	let amount = (Number(amountEth) - Number(tipAmount)).toString();
 	let res = await cashless.withdrawReservesTx(contract, amount, recvAddress, tipAmount);
 })();
