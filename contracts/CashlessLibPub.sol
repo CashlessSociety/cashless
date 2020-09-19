@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0;
+pragma solidity ^0.6.0;
 
 contract CashlessLibPub {
 
@@ -8,8 +8,8 @@ contract CashlessLibPub {
         return keccak256(abi.encodePacked("\x19\x01", domainSeparator, keccak256(data)));
     }
     
-    function getClaimID(bytes32 claimName, address sender, address receiver, bytes32 receiverAlias) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(claimName, sender, receiver, receiverAlias));
+    function getClaimID(bytes32 claimName, address sender, address receiver) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(claimName, sender, receiver));
     }
     
     function getLoopID(bytes32 proposalName, address[] memory loop) public pure returns (bytes32) {
@@ -20,5 +20,12 @@ contract CashlessLibPub {
     	return abi.encode(a, b, c, d);
     }
 
-    function () external {}
+    function verifySignature(bytes32 hash, uint8 v, bytes32 r, bytes32 s, address signer) public pure returns (bool) {
+        if (ecrecover(hash, v, r, s) == signer) {
+            return true;
+        }
+        return false;
+    }
+
+    fallback () external {}
 }
