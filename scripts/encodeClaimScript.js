@@ -11,7 +11,7 @@ var bufferToHex = (buffer) => {
 (() => {
 	let args = process.argv;
 	let claimJSON = JSON.parse(args[2]);
-	let result = cashless.encodeClaim(claimJSON["amountEth"], claimJSON["disputeDuration"], claimJSON["vestTimestamp"], claimJSON["voidTimestamp"], claimJSON["senderAddress"], claimJSON["receiverAddress"], claimJSON["claimName"], claimJSON["receiverAlias"], claimJSON["loopID"], claimJSON["nonce"]);
+	let result = cashless.encodeClaim(claimJSON["amount"], claimJSON["disputeDuration"], claimJSON["vestTimestamp"], claimJSON["voidTimestamp"], claimJSON["senderAddress"], claimJSON["receiverAddress"], claimJSON["claimName"], claimJSON["loopID"], claimJSON["nonce"]);
 	console.log("claim:", bufferToHex(result));
 })();
 
