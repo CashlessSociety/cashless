@@ -29,7 +29,7 @@ var deployCashless = async (wallet, erc20Address, gasPrice) => {
 	}
     factory = new ethers.ContractFactory(c["abi"], c["bytecode"], wallet);
 	deployTx = factory.getDeployTransaction(randomHash(), erc20Address);
-	deployTx.gasLimit = 6721975;
+	deployTx.gasLimit = 5000000;
 	deployTx.gasPrice = gasPrice;
 	console.log("Deploying cashless...");
 	try {

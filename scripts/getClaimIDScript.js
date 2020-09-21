@@ -17,7 +17,6 @@ var bufferToHex = (buffer) => {
 	let senderAddress = "0x"+claim[1][0];
 	let receiverAddress = "0x"+claim[1][1];
 	let claimName = bufferToHex(claim[2][0]);
-	let receiverAlias = bufferToHex(claim[2][1]);
-	let resp = await cashless.getClaimID(cashlessLibContract, claimName, senderAddress, receiverAddress, receiverAlias);
+	let resp = await cashless.getClaimID(cashlessLibContract, claimName, senderAddress, receiverAddress);
 	console.log("claim ID:", resp);
 })();

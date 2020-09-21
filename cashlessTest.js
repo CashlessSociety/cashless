@@ -41,6 +41,7 @@ var deployCashless = async wallet => {
     deployTx = factory.getDeployTransaction(ethers.utils.parseEther("1000000000"));
     deployTx.gasLimit = 3000000;
     let tokenAddress;
+    console.log("Deploying erc20...");
 	try {
 		let tx = await wallet.sendTransaction(deployTx);
         let receipt = await provider.getTransactionReceipt(tx.hash);
@@ -62,7 +63,8 @@ var deployCashless = async wallet => {
 	} catch(e) {
 		console.log('error deploying contract:', e.message);
 		return
-	}
+    }
+    console.log("");
 }
 
 var testBasicClaim = async (priv1, priv2) => {
@@ -76,7 +78,6 @@ var testBasicClaim = async (priv1, priv2) => {
 		let tx1 = await cashless.fundReservesTx(cashlessContract1, erc20Contract1, '8.0');
 		let h1 = randomHash();
 		let claim = cashless.encodeClaim('8.0', 0, now()-10000, now()+1000000, address1, address2, h1, emptyBytes32, 1);
-		console.log('created claim:', claim);
 		let sig1 = await cashless.signClaim(cashlessContract1, cashlessLibContract, claim);
 		let sig2 = await cashless.signClaim(cashlessContract2, cashlessLibContract, claim);
 		let tx2 = await cashless.proposeSettlementTx(cashlessContract2, claim, sig1, sig2);
@@ -101,33 +102,26 @@ var testBasicCyclicReciprocity = async (priv1, priv2, priv3) => {
 		let tx1 = await cashless.fundReservesTx(cashlessContract1, erc20Contract1, '10.0');
         let h1 = randomHash();
 		let claim12 = cashless.encodeClaim('10.0', 0, now()-10000, now()+1000000, address1, address2, h1, emptyBytes32, 1);
-		console.log('created claim12:', claim12);
 		let claim12sig1 = await cashless.signClaim(cashlessContract1, cashlessLibContract, claim12);
 		let claim12sig2 = await cashless.signClaim(cashlessContract2, cashlessLibContract, claim12);
 		let claim23 = cashless.encodeClaim('6.0', 0, now()-10000, now()+1000000, address2, address3, h1, emptyBytes32, 1);
-		console.log('created claim23:', claim23);
 		let claim23sig1 = await cashless.signClaim(cashlessContract2, cashlessLibContract, claim23);
 		let claim23sig2 = await cashless.signClaim(cashlessContract3, cashlessLibContract, claim23);
 		let claim31 = cashless.encodeClaim('4.0', 0, now()-10000, now()+1000000, address3, address1, h1, emptyBytes32, 1);
-		console.log('created claim31:', claim31);
 		let claim31sig1 = await cashless.signClaim(cashlessContract3, cashlessLibContract, claim31);
 		let claim31sig2 = await cashless.signClaim(cashlessContract1, cashlessLibContract, claim31);
 		let loopName = randomHash();
 		let loopID = await cashless.getLoopID(cashlessLibContract, loopName, [address1, address2, address3]);
-		console.log("got loop ID:", loopID);
 		let claim12b = cashless.encodeClaim('6.0', 0, now()-10000, now()+1000000, address1, address2, h1, loopID, 2);
-		console.log('created claim12b:', claim12b);
 		let claim12bsig1 = await cashless.signClaim(cashlessContract1, cashlessLibContract, claim12b);
 		let claim12bsig2 = await cashless.signClaim(cashlessContract2, cashlessLibContract, claim12b);
 		let claim23b = cashless.encodeClaim('2.0', 0, now()-10000, now()+1000000, address2, address3, h1, loopID, 2);
-		console.log('created claim23b:', claim23b);
 		let claim23bsig1 = await cashless.signClaim(cashlessContract2, cashlessLibContract, claim23b);
 		let claim23bsig2 = await cashless.signClaim(cashlessContract3, cashlessLibContract, claim23b);
 		let claim31b = cashless.encodeClaim('0.0', 0, now()-10000, now()+1000000, address3, address1, h1, loopID, 2);
-		console.log('created claim31b:', claim31b);
 		let claim31bsig1 = await cashless.signClaim(cashlessContract3, cashlessLibContract, claim31b);
 		let claim31bsig2 = await cashless.signClaim(cashlessContract1, cashlessLibContract, claim31b);
-		let tx2 = await cashless.proposeLoopTx(cashlessContract1, loopName, [address1, address2, address3], '4.0', now()+1000000);
+		let tx2 = await cashless.proposeLoopTx(cashlessContract1, loopName, [address1, address2, address3], '4.0');
 		let encodedLoopClaim12 = await cashless.encodeLoopClaim(cashlessLibContract, claim12, claim12sig1, claim12sig2);
 		let encodedLoopClaim12b = await cashless.encodeLoopClaim(cashlessLibContract, claim12b, claim12bsig1, claim12bsig2);
 		let tx3 = await cashless.commitLoopClaimTx(cashlessContract3, loopID, encodedLoopClaim12, encodedLoopClaim12b);
@@ -165,20 +159,16 @@ var runTests = async (priv1, priv2, priv3) => {
         let address3 = cashless.addressFromPriv(priv3);
         let tx1h = await cashless.erc20TransferTx(erc20Contract1, address2, "100");
         let tx2h = await cashless.erc20TransferTx(erc20Contract1, address3, "100");
-		let sig1 = await cashless.signInitReserves(cashlessContract1, cashlessLibContract);
-		let tx3h = await cashless.initReservesTx(cashlessContract1, address1, sig1);
-		let sig2 = await cashless.signInitReserves(cashlessContract2, cashlessLibContract);
-        let tx4h = await cashless.initReservesTx(cashlessContract2, address2, sig2);
-		let sig3 = await cashless.signInitReserves(cashlessContract3, cashlessLibContract);
-		let tx5h = await cashless.initReservesTx(cashlessContract3, address3, sig3);
 		let passed = await testBasicClaim(priv1, priv2);
 		if (!passed) {
 			throw {message: 'failed testBasicClaim'};
-		}
-		passed = await testBasicCyclicReciprocity(priv1, priv2, priv3);
-		if (!passed) {
-			throw {message: 'failed testBasicCyclicReciprocity'};
-		}
+        }
+        for (let i=0; i<5; i++) {
+            passed = await testBasicCyclicReciprocity(priv1, priv2, priv3);
+            if (!passed) {
+                throw {message: 'failed testBasicCyclicReciprocity'};
+            }
+        }
 		return 'success!';
 	} catch(e) {
 		console.log("error:", e.message);

@@ -1,9 +1,11 @@
 pragma solidity ^0.6.0;
-import "./SafeMath.sol";
 import "./CashlessLib.sol";
 import "./../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 
 contract Cashless {
+    using SafeMath for uint256;
+
     // Precomputed hash for EIP712 domain separator
     bytes32 constant EIP712HASH = 0x0eff6c88c44fbde2113ba7421deef795c18fc5a553a55b2ba4d237269e1c2662;
     
@@ -23,14 +25,6 @@ contract Cashless {
         bytes32 loopID;
     }
     
-    // SignedClaim
-    struct SignedClaim {
-        bytes claimData;
-        uint8[2] sigsV;
-        bytes32[2] sigsR;
-        bytes32[2] sigsS;
-    }
-    
     // Settlement
     struct Settlement {
         uint256 amountPaid;
@@ -43,21 +37,15 @@ contract Cashless {
         bytes32 proposalName;
         address[] loop;
         uint256 minFlow;
-        uint256 lockTimestamp;
-        mapping (address => SignedClaim) claims;
         address[] committed;
     }
     
     // Reserves
     struct Reserves {
-        address owner;
         uint256 balance;
         bytes32[] claimIDs;
-        mapping (bytes32 => SignedClaim[]) claims;
-        uint256 grossClaimed;
-        uint256 grossDefaulted;
-        uint256 grossPaid;
-        mapping (bytes32 => uint256[2]) proposalTimestamps;
+        mapping (bytes32 => bytes[]) claims;
+        mapping (bytes32 => uint256) proposalTimestamp;
         mapping (bytes32 => Settlement) settlements;
     }
     
@@ -72,37 +60,23 @@ contract Cashless {
         tokenAddress = _tokenAddress;
     }
     
-    // Public State Modifying functions
-    function createReserves(address reservesAddress, uint8 v, bytes32 r, bytes32 s) public {
-        bytes32 hash = CashlessLib.hashClaimData(abi.encode(reservesAddress), DOMAIN_SEPARATOR);
-        require(reserves[reservesAddress].balance == 0);
-        require(reserves[reservesAddress].owner == address(0));
-        require(ecrecover(hash, v, r, s) == reservesAddress);
-        reserves[reservesAddress].owner = reservesAddress;
-    }
-    
     function fundReserves(address accountOwner, uint256 amount) public {
-        require(accountOwner != address(0));
-        require(address(reserves[accountOwner].owner) == accountOwner);
-        reserves[accountOwner].balance = SafeMath.add(reserves[accountOwner].balance, amount);
+        reserves[accountOwner].balance = reserves[accountOwner].balance.add(amount);
         require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount));
     }
     
     function withdrawReserves(uint256 amount, address targetReceiver) public {
-        require(reserves[msg.sender].owner == address(msg.sender));
         require(amount>0);
-        require(reserves[msg.sender].balance >= SafeMath.add(reserves[msg.sender].grossClaimed, amount));
-        reserves[msg.sender].balance = SafeMath.sub(reserves[msg.sender].balance, amount);
+        require(reserves[msg.sender].balance >= amount);
+        reserves[msg.sender].balance = reserves[msg.sender].balance.sub(amount);
         require(IERC20(tokenAddress).transfer(targetReceiver, amount));
     }
     
     function proposeSettlement(bytes memory claimData, uint8[2] memory sigsV, bytes32[2] memory sigsR, bytes32[2] memory sigsS) public {
         (address sender, bytes32 id, uint256 disputeDuration) = verifySettlement(claimData, sigsV, sigsR, sigsS, false); 
         reserves[sender].claimIDs.push(id);
-        reserves[sender].claims[id].push(SignedClaim(claimData, sigsV, sigsR, sigsS));
-        reserves[sender].proposalTimestamps[id][0] = now;
-        reserves[sender].proposalTimestamps[id][1] = now;
-        reserves[sender].grossClaimed = SafeMath.add(reserves[sender].grossClaimed, getAdjustedClaimAmount(sender, id));
+        reserves[sender].claims[id].push(claimData);
+        reserves[sender].proposalTimestamp[id] = now;
         // if no dispute period settle immediately
         if (disputeDuration == 0) {
             closeSettlement(sender, id);
@@ -112,12 +86,8 @@ contract Cashless {
     function disputeSettlement(bytes memory claimData, uint8[2] memory sigsV, bytes32[2] memory sigsR, bytes32[2] memory sigsS) public {
         (address sender, bytes32 id, uint256 disputeDuration) = verifySettlement(claimData, sigsV, sigsR, sigsS, true); 
         // minimum required duration between vest and void time
-        uint256 oldAmount = getAdjustedClaimAmount(sender, id);
-        reserves[sender].claims[id].push(SignedClaim(claimData, sigsV, sigsR, sigsS));
-        reserves[sender].proposalTimestamps[id][1] = now;
-        uint256 newAmount = getAdjustedClaimAmount(sender, id);
-        reserves[sender].grossClaimed = SafeMath.sub(reserves[sender].grossClaimed, oldAmount);
-        reserves[sender].grossClaimed = SafeMath.add(reserves[sender].grossClaimed, newAmount);
+        reserves[sender].claims[id].push(claimData);
+        reserves[sender].proposalTimestamp[id] = now;
         if (disputeDuration == 0) {
             closeSettlement(sender, id);
         }
@@ -125,24 +95,23 @@ contract Cashless {
     
     function redeemClaim(address accountOwner, bytes32 claimID) public {
         require(reserves[accountOwner].settlements[claimID].settled == false);
-        require(reserves[accountOwner].proposalTimestamps[claimID][1] > 0);
+        require(reserves[accountOwner].proposalTimestamp[claimID] > 0);
         require(reserves[accountOwner].claims[claimID].length > 0);
         uint256 index = reserves[accountOwner].claims[claimID].length - 1;
-        (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][index].claimData, (uint256[4], address[2], bytes32[2], uint8));
+        (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][index], (uint256[4], address[2], bytes32[2], uint8));
         Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), nonce, values[0], values[1], values[2], values[3], ids[1]);
-        require(SafeMath.add(reserves[accountOwner].proposalTimestamps[claimID][1], claim.disputeDuration) < now);
+        require(reserves[accountOwner].proposalTimestamp[claimID].add(claim.disputeDuration) < now);
         require(claim.amount > 0);
         closeSettlement(accountOwner, claimID);
     }
     
-    function proposeLoop(bytes32 proposalName, address[] memory loop, uint256 minFlow, uint256 lockTimestamp) public {
+    function proposeLoop(bytes32 proposalName, address[] memory loop, uint256 minFlow) public {
         require(loop.length >= 2);
         bytes32 id = CashlessLib.getLoopID(proposalName, loop);
         bytes32 nil;
         require(loops[id].proposalName == nil);
         loops[id].proposalName = proposalName;
         loops[id].loop = loop;
-        loops[id].lockTimestamp = lockTimestamp;
         loops[id].minFlow = minFlow;
     }
     
@@ -164,16 +133,13 @@ contract Cashless {
         for (uint256 j=0; j<loops[loopID].committed.length; j++) {
             require(loops[loopID].committed[j]!=sender);
         }
-        (bytes memory claimData2, uint8[2] memory v2, bytes32[2] memory r2, bytes32[2] memory s2) = abi.decode(encodedClaim, (bytes, uint8[2], bytes32[2], bytes32[2]));
-        loops[loopID].claims[sender] = SignedClaim(claimData2, v2, r2, s2);
         loops[loopID].committed.push(sender);
     }
     
-    // Internal (Protected) State Modifying functions
+    // Internal (Protected) functions
     function verifySettlement(bytes memory claimData, uint8[2] memory sigsV, bytes32[2] memory sigsR, bytes32[2] memory sigsS, bool isDispute) internal view returns (address, bytes32, uint256) {
         (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(claimData, (uint256[4], address[2], bytes32[2], uint8));
         Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), nonce, values[0], values[1], values[2], values[3], ids[1]);
-        require(reserves[claim.sender].owner == claim.sender);
         bytes32 id;
         if (claim.loopID != id) {
             require(loops[claim.loopID].committed.length > 0);
@@ -181,15 +147,15 @@ contract Cashless {
         }
         require(claim.nonce > 0);
         // minimum required duration between vest and void time
-        require(SafeMath.sub(claim.voidTimestamp, claim.vestTimestamp) >= minVestDuration);
+        require(claim.voidTimestamp.sub(claim.vestTimestamp) >= minVestDuration);
         require(now > claim.vestTimestamp);
         id = CashlessLib.getClaimID(claim.claimName, claim.sender, claim.receiver);
         if (isDispute) {
             require(reserves[claim.sender].claims[id].length > 0);
             uint256 lastIndex = reserves[claim.sender].claims[id].length - 1;
-            (values, addrs, ids, nonce) = abi.decode(reserves[claim.sender].claims[id][lastIndex].claimData, (uint256[4], address[2], bytes32[2], uint8));
+            (values, addrs, ids, nonce) = abi.decode(reserves[claim.sender].claims[id][lastIndex], (uint256[4], address[2], bytes32[2], uint8));
             Claim memory priorClaim = Claim(ids[0], address(addrs[0]), address(addrs[1]), nonce, values[0], values[1], values[2], values[3], ids[1]);
-            require(SafeMath.add(reserves[claim.sender].proposalTimestamps[id][1], priorClaim.disputeDuration) > now);
+            require(reserves[claim.sender].proposalTimestamp[id].add(priorClaim.disputeDuration) > now);
             require(claim.nonce > priorClaim.nonce);
         } else {
             for (uint256 i=0; i<reserves[claim.sender].claimIDs.length; i++) {
@@ -207,32 +173,25 @@ contract Cashless {
     function closeSettlement(address accountOwner, bytes32 claimID) internal {
         require(reserves[accountOwner].claims[claimID].length > 0);
         uint256 lastIndex = reserves[accountOwner].claims[claimID].length - 1;
-        (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][lastIndex].claimData, (uint256[4], address[2], bytes32[2], uint8));
+        (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][lastIndex], (uint256[4], address[2], bytes32[2], uint8));
         Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), nonce, values[0], values[1], values[2], values[3], ids[1]);
-        uint256 amount = getAdjustedClaimAmount(accountOwner, claimID);
-        reserves[claim.sender].grossClaimed = SafeMath.sub(reserves[claim.sender].grossClaimed, amount);
-        if (reserves[claim.sender].balance >= amount) {
-            reserves[claim.sender].settlements[claimID] = Settlement(amount, 0, true);
-            reserves[claim.sender].grossPaid = SafeMath.add(reserves[claim.sender].grossPaid, amount);
-            reserves[claim.sender].balance = SafeMath.sub(reserves[claim.sender].balance, amount);
-            reserves[claim.receiver].balance = SafeMath.add(reserves[claim.receiver].balance, amount);
+        if (reserves[claim.sender].balance >= claim.amount) {
+            reserves[claim.sender].settlements[claimID] = Settlement(claim.amount, 0, true);
+            reserves[claim.sender].balance = reserves[claim.sender].balance.sub(claim.amount);
+            reserves[claim.receiver].balance = reserves[claim.receiver].balance.add(claim.amount);
         } else {
             if (reserves[claim.sender].balance > 0) {
-                uint256 defaultAmount = SafeMath.sub(amount, reserves[claim.sender].balance);
+                uint256 defaultAmount = claim.amount.sub(reserves[claim.sender].balance);
                 reserves[claim.sender].settlements[claimID] = Settlement(reserves[claim.sender].balance, defaultAmount, true);
-                reserves[claim.sender].grossPaid = SafeMath.add(reserves[claim.sender].grossPaid, reserves[claim.sender].balance);
-                reserves[claim.sender].grossDefaulted = SafeMath.add(reserves[claim.sender].grossDefaulted, defaultAmount);
-                reserves[claim.receiver].balance = SafeMath.add(reserves[claim.receiver].balance, reserves[claim.sender].balance);
+                reserves[claim.receiver].balance = reserves[claim.receiver].balance.add(reserves[claim.sender].balance);
                 reserves[claim.sender].balance = 0;
             } else {
-                reserves[claim.sender].settlements[claimID] = Settlement(0, amount, true);
-                reserves[claim.sender].grossDefaulted = SafeMath.add(reserves[claim.sender].grossDefaulted, amount);
+                reserves[claim.sender].settlements[claimID] = Settlement(0, claim.amount, true);
             }
         }
     }
     
     function verifyLoopClaim(bytes32 loopID, bytes memory encodedPriorClaim, bytes memory encodedClaim) internal view returns (address, address) {
-        require(now < loops[loopID].lockTimestamp);
         (bytes memory claimData1, uint8[2] memory v1, bytes32[2] memory r1, bytes32[2] memory s1) = abi.decode(encodedPriorClaim, (bytes, uint8[2], bytes32[2], bytes32[2]));
         (bytes memory claimData2, uint8[2] memory v2, bytes32[2] memory r2, bytes32[2] memory s2) = abi.decode(encodedClaim, (bytes, uint8[2], bytes32[2], bytes32[2]));
         require(verifyClaimSig(claimData1, v1[0], r1[0], s1[0], true));
@@ -254,7 +213,7 @@ contract Cashless {
         require(oldClaim.sender==newClaim.sender);
         require(oldClaim.receiver==newClaim.receiver);
         require(loops[loopID].minFlow > 0);
-        require(SafeMath.sub(oldClaim.amount, newClaim.amount) == loops[loopID].minFlow);
+        require(oldClaim.amount.sub(newClaim.amount) == loops[loopID].minFlow);
         return (oldClaim.sender, oldClaim.receiver);
     }
     
@@ -265,7 +224,7 @@ contract Cashless {
         if (0 >= claim.nonce) {
             return false;
         }
-        if (SafeMath.sub(claim.voidTimestamp, claim.vestTimestamp) < minVestDuration) {
+        if (claim.voidTimestamp.sub(claim.vestTimestamp) < minVestDuration) {
             return false;
         }
         bytes32 hash = CashlessLib.hashClaimData(claimData, DOMAIN_SEPARATOR);
@@ -280,24 +239,13 @@ contract Cashless {
         }
         return true;
     }
-    
-    function getAdjustedClaimAmount(address accountOwner, bytes32 claimID) public view returns (uint256) {
-        require(reserves[accountOwner].claims[claimID].length > 0);
-        uint256 lastIndex = reserves[accountOwner].claims[claimID].length - 1;
-        (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][lastIndex].claimData, (uint256[4], address[2], bytes32[2], uint8));
-        Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), nonce, values[0], values[1], values[2], values[3], ids[1]);
-        uint256 numerator = SafeMath.mul(100, SafeMath.sub(reserves[accountOwner].proposalTimestamps[claimID][0], claim.vestTimestamp));
-        uint256 denominator = SafeMath.sub(claim.voidTimestamp, claim.vestTimestamp);
-        uint256 percentLost = SafeMath.div(numerator, denominator);
-        return SafeMath.div(SafeMath.sub(SafeMath.mul(100, claim.amount), SafeMath.mul(percentLost, claim.amount)), 100);
-    }
 
     function getClaimIDs(address accountOwner) public view returns (bytes32[] memory) {
         return reserves[accountOwner].claimIDs;
     }
     
     function getReservesClaim(address accountOwner, bytes32 claimID, uint256 index) public view returns (bytes memory) {
-        return reserves[accountOwner].claims[claimID][index].claimData;
+        return reserves[accountOwner].claims[claimID][index];
     }
 
     function getReservesSettlement(address accountOwner, bytes32 claimID) public view returns (uint256, uint256, bool) {
