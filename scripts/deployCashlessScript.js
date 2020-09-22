@@ -12,7 +12,7 @@ var randomHash = () => {
 	return cashless.hashString(resultString);
 }
 
-var deployCashless = async (wallet, gasPrice) => {
+var deployCashless = async (wallet, erc20Address, gasPrice) => {
 	let lib = JSON.parse(fs.readFileSync('./../build/contracts/CashlessLibPub.json'));
 	let c = JSON.parse(fs.readFileSync('./../build/contracts/Cashless.json'));
 	let factory = new ethers.ContractFactory(lib["abi"], lib["bytecode"], wallet);
@@ -27,9 +27,9 @@ var deployCashless = async (wallet, gasPrice) => {
 		console.log('error deploying lib:', e.message);
 		return
 	}
-	factory = new ethers.ContractFactory(c["abi"], c["bytecode"], wallet);
-	deployTx = factory.getDeployTransaction(randomHash());
-	deployTx.gasLimit = 6721975;
+    factory = new ethers.ContractFactory(c["abi"], c["bytecode"], wallet);
+	deployTx = factory.getDeployTransaction(randomHash(), erc20Address);
+	deployTx.gasLimit = 5000000;
 	deployTx.gasPrice = gasPrice;
 	console.log("Deploying cashless...");
 	try {
@@ -48,6 +48,7 @@ var deployCashless = async (wallet, gasPrice) => {
 	let provider = new ethers.providers.JsonRpcProvider(providerURL);
 	let priv = args[3];
 	let wallet = new ethers.Wallet(priv, provider);
-	let gasPrice = Number(args[4]);
-	await deployCashless(wallet, gasPrice);
+    let gasPrice = Number(args[4]);
+    let erc20 = cashless.erc20Contract(providerURL, wallet);
+	await deployCashless(wallet, erc20.address, gasPrice);
 })();
