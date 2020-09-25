@@ -1,5 +1,4 @@
 const ethers = require('ethers');
-const fs = require('fs');
 const crypto = require('crypto');
 const ethjsutil = require('ethereumjs-util');
 const abi = require('ethereumjs-abi');
@@ -23,7 +22,7 @@ cashlessAddress = network => {
 		return "";
 	}
 	if (network == "rinkeby") {
-		return "0x61319564Ac5e04E6462A5ccbc68c812450133E06";
+		return "0x75Af14de19aC83D938703c2BA72cf9B89ac60D0B";
 	}
 	if (network == "dev") {
 		return "0x20346Aebaacfa94B8dcd7F5cE3B7f25d3163C672";
@@ -36,7 +35,7 @@ cashlessLibAddress = network => {
 		return "";
 	}
 	if (network == "rinkeby") {
-		return "0xf7DCB21902deA7e2e6AD2E8842E9A01030c1aCF9";
+		return "0x0CCB150D61bF5B6E65667d10515B856574769b45";
 	}
 	if (network == "dev") {
 		return "0xb3869548879977C80564f0a42FF934F0cEf4BBC7";
@@ -49,7 +48,7 @@ erc20Address = network => {
         return "0x6B175474E89094C44Da98b954EedeAC495271d0F";
     }
     if (network == "rinkeby") {
-        return "0xDDcD99957A7992B7e4D32f3Ea662616a6702807E";
+        return "0xb4e232250DdDb7e6243A6f2416fEDE99da2D3A62";
     }
     if (network == "dev") {
         return "0xd4177A2Bd990DA8416f30C1D9A161CB2c9325F8b";
