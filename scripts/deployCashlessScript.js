@@ -49,6 +49,6 @@ var deployCashless = async (wallet, erc20Address, gasPrice) => {
 	let priv = args[3];
 	let wallet = new ethers.Wallet(priv, provider);
     let gasPrice = Number(args[4]);
-    let erc20 = cashless.erc20Contract(providerURL, wallet);
+    let erc20 = cashless.stablecoinContract(providerURL, wallet);
 	await deployCashless(wallet, erc20.address, gasPrice);
 })();

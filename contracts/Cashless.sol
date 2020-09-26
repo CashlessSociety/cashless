@@ -3,10 +3,10 @@ import "./CashlessLib.sol";
 import "./../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 
-contract Cashless {
+contract Cashless is IERC20 {
     using SafeMath for uint256;
 
-    // Precomputed hash for EIP712 domain separator
+   // Precomputed hash for EIP712 domain separator
     bytes32 constant EIP712HASH = 0x0eff6c88c44fbde2113ba7421deef795c18fc5a553a55b2ba4d237269e1c2662;
     
     // Domain separator completed on contract construction
@@ -40,9 +40,7 @@ contract Cashless {
         address[] committed;
     }
     
-    // Reserves
-    struct Reserves {
-        uint256 balance;
+    struct ClaimHistory {
         bytes32[] claimIDs;
         mapping (bytes32 => bytes[]) claims;
         mapping (bytes32 => uint256) proposalTimestamp;
@@ -50,33 +48,40 @@ contract Cashless {
     }
     
     uint256 public minVestDuration = 604800;
-    address public tokenAddress;
-    mapping (address => Reserves) public reserves;
+    address public redeemableTokenAddress;
+    mapping (address => ClaimHistory) private history;
     mapping (bytes32 => LoopProposal) public loops;
+    mapping (address => uint256) private _balances;
+    mapping (address => mapping (address => uint256)) private _allowances;
+    uint256 private _totalSupply;
+    string private _name;
+    string private _symbol;
+    uint8 private _decimals;
 
-    // Constructor function
-    constructor (bytes32 salt, address _tokenAddress) public {
+    constructor (bytes32 salt, address _redeemableTokenAddress) public {
+        _name = "Reserves USDC";
+        _symbol = "rUSDC";
+        _decimals = 18;
         DOMAIN_SEPARATOR = keccak256(abi.encodePacked(EIP712HASH, this, salt));
-        tokenAddress = _tokenAddress;
+        redeemableTokenAddress = _redeemableTokenAddress;
     }
     
-    function fundReserves(address accountOwner, uint256 amount) public {
-        reserves[accountOwner].balance = reserves[accountOwner].balance.add(amount);
-        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount));
+    function fund(address collectingAccount, uint256 amount) public {
+        require(IERC20(redeemableTokenAddress).transferFrom(msg.sender, address(this), amount));
+        _mint(collectingAccount, amount);
     }
     
-    function withdrawReserves(uint256 amount, address targetReceiver) public {
+    function redeem(uint256 amount, address targetReceiver) public {
         require(amount>0);
-        require(reserves[msg.sender].balance >= amount);
-        reserves[msg.sender].balance = reserves[msg.sender].balance.sub(amount);
-        require(IERC20(tokenAddress).transfer(targetReceiver, amount));
+        require(IERC20(redeemableTokenAddress).transfer(targetReceiver, amount));
+        _burn(msg.sender, amount);
     }
     
     function proposeSettlement(bytes memory claimData, uint8[2] memory sigsV, bytes32[2] memory sigsR, bytes32[2] memory sigsS) public {
         (address sender, bytes32 id, uint256 disputeDuration) = verifySettlement(claimData, sigsV, sigsR, sigsS, false); 
-        reserves[sender].claimIDs.push(id);
-        reserves[sender].claims[id].push(claimData);
-        reserves[sender].proposalTimestamp[id] = now;
+        history[sender].claimIDs.push(id);
+        history[sender].claims[id].push(claimData);
+        history[sender].proposalTimestamp[id] = now;
         // if no dispute period settle immediately
         if (disputeDuration == 0) {
             closeSettlement(sender, id);
@@ -86,21 +91,21 @@ contract Cashless {
     function disputeSettlement(bytes memory claimData, uint8[2] memory sigsV, bytes32[2] memory sigsR, bytes32[2] memory sigsS) public {
         (address sender, bytes32 id, uint256 disputeDuration) = verifySettlement(claimData, sigsV, sigsR, sigsS, true); 
         // minimum required duration between vest and void time
-        reserves[sender].claims[id].push(claimData);
-        reserves[sender].proposalTimestamp[id] = now;
+        history[sender].claims[id].push(claimData);
+        history[sender].proposalTimestamp[id] = now;
         if (disputeDuration == 0) {
             closeSettlement(sender, id);
         }
     }
     
-    function redeemClaim(address accountOwner, bytes32 claimID) public {
-        require(reserves[accountOwner].settlements[claimID].settled == false);
-        require(reserves[accountOwner].proposalTimestamp[claimID] > 0);
-        require(reserves[accountOwner].claims[claimID].length > 0);
-        uint256 index = reserves[accountOwner].claims[claimID].length - 1;
-        (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][index], (uint256[4], address[2], bytes32[2], uint8));
+    function commitSettlement(address accountOwner, bytes32 claimID) public {
+        require(history[accountOwner].settlements[claimID].settled == false);
+        require(history[accountOwner].proposalTimestamp[claimID] > 0);
+        require(history[accountOwner].claims[claimID].length > 0);
+        uint256 index = history[accountOwner].claims[claimID].length - 1;
+        (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(history[accountOwner].claims[claimID][index], (uint256[4], address[2], bytes32[2], uint8));
         Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), nonce, values[0], values[1], values[2], values[3], ids[1]);
-        require(reserves[accountOwner].proposalTimestamp[claimID].add(claim.disputeDuration) < now);
+        require(history[accountOwner].proposalTimestamp[claimID].add(claim.disputeDuration) < now);
         require(claim.amount > 0);
         closeSettlement(accountOwner, claimID);
     }
@@ -151,42 +156,40 @@ contract Cashless {
         require(now > claim.vestTimestamp);
         id = CashlessLib.getClaimID(claim.claimName, claim.sender, claim.receiver);
         if (isDispute) {
-            require(reserves[claim.sender].claims[id].length > 0);
-            uint256 lastIndex = reserves[claim.sender].claims[id].length - 1;
-            (values, addrs, ids, nonce) = abi.decode(reserves[claim.sender].claims[id][lastIndex], (uint256[4], address[2], bytes32[2], uint8));
+            require(history[claim.sender].claims[id].length > 0);
+            uint256 lastIndex = history[claim.sender].claims[id].length - 1;
+            (values, addrs, ids, nonce) = abi.decode(history[claim.sender].claims[id][lastIndex], (uint256[4], address[2], bytes32[2], uint8));
             Claim memory priorClaim = Claim(ids[0], address(addrs[0]), address(addrs[1]), nonce, values[0], values[1], values[2], values[3], ids[1]);
-            require(reserves[claim.sender].proposalTimestamp[id].add(priorClaim.disputeDuration) > now);
+            require(history[claim.sender].proposalTimestamp[id].add(priorClaim.disputeDuration) > now);
             require(claim.nonce > priorClaim.nonce);
         } else {
-            for (uint256 i=0; i<reserves[claim.sender].claimIDs.length; i++) {
-                require(reserves[claim.sender].claimIDs[i] != id);
+            for (uint256 i=0; i<history[claim.sender].claimIDs.length; i++) {
+                require(history[claim.sender].claimIDs[i] != id);
             }
             require(now < claim.voidTimestamp);
             require(claim.amount > 0); 
         }
         require(verifyClaimSig(claimData, sigsV[0], sigsR[0], sigsS[0], true));
         require(verifyClaimSig(claimData, sigsV[1], sigsR[1], sigsS[1], false));
-        require(reserves[claim.sender].settlements[id].settled == false);
+        require(history[claim.sender].settlements[id].settled == false);
         return (claim.sender, id, claim.disputeDuration);
     }
     
     function closeSettlement(address accountOwner, bytes32 claimID) internal {
-        require(reserves[accountOwner].claims[claimID].length > 0);
-        uint256 lastIndex = reserves[accountOwner].claims[claimID].length - 1;
-        (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(reserves[accountOwner].claims[claimID][lastIndex], (uint256[4], address[2], bytes32[2], uint8));
+        require(history[accountOwner].claims[claimID].length > 0);
+        uint256 lastIndex = history[accountOwner].claims[claimID].length - 1;
+        (uint256[4] memory values, address[2] memory addrs, bytes32[2] memory ids, uint8 nonce) = abi.decode(history[accountOwner].claims[claimID][lastIndex], (uint256[4], address[2], bytes32[2], uint8));
         Claim memory claim = Claim(ids[0], address(addrs[0]), address(addrs[1]), nonce, values[0], values[1], values[2], values[3], ids[1]);
-        if (reserves[claim.sender].balance >= claim.amount) {
-            reserves[claim.sender].settlements[claimID] = Settlement(claim.amount, 0, true);
-            reserves[claim.sender].balance = reserves[claim.sender].balance.sub(claim.amount);
-            reserves[claim.receiver].balance = reserves[claim.receiver].balance.add(claim.amount);
+        if (_balances[claim.sender] >= claim.amount) {
+            history[claim.sender].settlements[claimID] = Settlement(claim.amount, 0, true);
+            _transfer(claim.sender, claim.receiver, claim.amount);
         } else {
-            if (reserves[claim.sender].balance > 0) {
-                uint256 defaultAmount = claim.amount.sub(reserves[claim.sender].balance);
-                reserves[claim.sender].settlements[claimID] = Settlement(reserves[claim.sender].balance, defaultAmount, true);
-                reserves[claim.receiver].balance = reserves[claim.receiver].balance.add(reserves[claim.sender].balance);
-                reserves[claim.sender].balance = 0;
+            if (_balances[claim.sender] > 0) {
+                uint256 defaultAmount = claim.amount.sub(_balances[claim.sender]);
+                history[claim.sender].settlements[claimID] = Settlement(_balances[claim.sender], defaultAmount, true);
+                _transfer(claim.sender, claim.receiver, _balances[claim.sender]);
             } else {
-                reserves[claim.sender].settlements[claimID] = Settlement(0, claim.amount, true);
+                history[claim.sender].settlements[claimID] = Settlement(0, claim.amount, true);
             }
         }
     }
@@ -241,19 +244,106 @@ contract Cashless {
     }
 
     function getClaimIDs(address accountOwner) public view returns (bytes32[] memory) {
-        return reserves[accountOwner].claimIDs;
+        return history[accountOwner].claimIDs;
     }
     
-    function getReservesClaim(address accountOwner, bytes32 claimID, uint256 index) public view returns (bytes memory) {
-        return reserves[accountOwner].claims[claimID][index];
+    function getClaim(address accountOwner, bytes32 claimID, uint256 index) public view returns (bytes memory) {
+        return history[accountOwner].claims[claimID][index];
     }
 
-    function getReservesSettlement(address accountOwner, bytes32 claimID) public view returns (uint256, uint256, bool) {
-        return (reserves[accountOwner].settlements[claimID].amountPaid, reserves[accountOwner].settlements[claimID].amountDefaulted, reserves[accountOwner].settlements[claimID].settled);
+    function getSettlement(address accountOwner, bytes32 claimID) public view returns (uint256, uint256, bool) {
+        return (history[accountOwner].settlements[claimID].amountPaid, history[accountOwner].settlements[claimID].amountDefaulted, history[accountOwner].settlements[claimID].settled);
     }
     
     function getLoopStatus(bytes32 loopID) public view returns (address[] memory, address[] memory) {
         return (loops[loopID].loop, loops[loopID].committed);
+    }
+
+    function name() public view returns (string memory) {
+        return _name;
+    }
+
+    function symbol() public view returns (string memory) {
+        return _symbol;
+    }
+
+    function decimals() public view returns (uint8) {
+        return _decimals;
+    }
+
+    function totalSupply() public view override returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) public view override returns (uint256) {
+        return _balances[account];
+    }
+
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
+        _transfer(msg.sender, recipient, amount);
+        return true;
+    }
+
+    function allowance(address owner, address spender) public view override returns (uint256) {
+        return _allowances[owner][spender];
+    }
+
+    function approve(address spender, uint256 amount) public override returns (bool) {
+        _approve(msg.sender, spender, amount);
+        return true;
+    }
+
+    function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
+        _transfer(sender, recipient, amount);
+        _approve(sender, msg.sender, _allowances[sender][msg.sender].sub(amount, "ERC20: transfer amount exceeds allowance"));
+        return true;
+    }
+
+    function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
+        _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
+        return true;
+    }
+
+    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
+        _approve(msg.sender, spender, _allowances[msg.sender][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
+        return true;
+    }
+
+    function _transfer(address sender, address recipient, uint256 amount) internal {
+        require(sender != address(0), "ERC20: transfer from the zero address");
+        require(recipient != address(0), "ERC20: transfer to the zero address");
+
+        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
+        _balances[recipient] = _balances[recipient].add(amount);
+        emit Transfer(sender, recipient, amount);
+    }
+
+    function _mint(address account, uint256 amount) internal {
+        require(account != address(0), "ERC20: mint to the zero address");
+
+        _totalSupply = _totalSupply.add(amount);
+        _balances[account] = _balances[account].add(amount);
+        emit Transfer(address(0), account, amount);
+    }
+
+    function _burn(address account, uint256 amount) internal {
+        require(account != address(0), "ERC20: burn from the zero address");
+
+        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
+        _totalSupply = _totalSupply.sub(amount);
+        emit Transfer(account, address(0), amount);
+    }
+
+    function _approve(address owner, address spender, uint256 amount) internal  {
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
+
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    function _setupDecimals(uint8 decimals_) internal {
+        _decimals = decimals_;
     }
 
     // Fallback Funtion
