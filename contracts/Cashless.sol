@@ -59,8 +59,8 @@ contract Cashless is IERC20 {
     uint8 private _decimals;
 
     constructor (bytes32 salt, address _redeemableTokenAddress) public {
-        _name = "Reserves USDC";
-        _symbol = "rUSDC";
+        _name = "Reserve USD Token";
+        _symbol = "RESERVE";
         _decimals = 18;
         DOMAIN_SEPARATOR = keccak256(abi.encodePacked(EIP712HASH, this, salt));
         redeemableTokenAddress = _redeemableTokenAddress;
@@ -230,7 +230,7 @@ contract Cashless is IERC20 {
         if (claim.voidTimestamp.sub(claim.vestTimestamp) < minVestDuration) {
             return false;
         }
-        bytes32 hash = CashlessLib.hashClaimData(claimData, DOMAIN_SEPARATOR);
+        bytes32 hash = CashlessLib.messageHash(CashlessLib.hashClaimData(claimData, DOMAIN_SEPARATOR));
         address signer;
         if (isOwner) {
             signer = claim.sender;
