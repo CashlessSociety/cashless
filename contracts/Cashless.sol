@@ -59,9 +59,9 @@ contract Cashless is IERC20 {
     uint8 private _decimals;
 
     constructor (bytes32 salt, address _redeemableTokenAddress) public {
-        _name = "Reserve USD Token";
+        _name = "Reserve USD Coin";
         _symbol = "RESERVE";
-        _decimals = 18;
+        _decimals = 6;
         DOMAIN_SEPARATOR = keccak256(abi.encodePacked(EIP712HASH, this, salt));
         redeemableTokenAddress = _redeemableTokenAddress;
     }

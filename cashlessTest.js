@@ -38,7 +38,7 @@ var deployCashless = async wallet => {
 		return
     }
     factory = new ethers.ContractFactory(e["abi"], e["bytecode"], wallet);
-    deployTx = factory.getDeployTransaction(ethers.utils.parseEther("1000000000"));
+    deployTx = factory.getDeployTransaction(cashless.parseCoin("1000000000"));
     deployTx.gasLimit = 3000000;
     let tokenAddress;
     console.log("Deploying stablecoin...");

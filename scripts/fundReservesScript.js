@@ -7,6 +7,6 @@ const cashless = require('./../cashless.js');
     let amountToken = args[4];
     let wallet = cashless.wallet(providerURL, privateKey);
     let reserves = cashless.contract(providerURL, wallet);
-    let dai = cashless.stablecoinContract(providerURL, wallet);
-	let res = await cashless.fundReservesTx(reserves, dai, amountToken);
+    let usdc = cashless.stablecoinContract(providerURL, wallet);
+	let res = await cashless.fundReservesTx(reserves, usdc, amountToken);
 })();

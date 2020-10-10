@@ -1,5 +1,4 @@
 const cashless = require('./../cashless.js');
-const ethers = require('ethers');
 
 (async () => {
 	let args = process.argv;
@@ -7,6 +6,6 @@ const ethers = require('ethers');
 	let reservesAddress = args[3];
 	let contract = cashless.contract(providerURL, null);
     let resp = await cashless.getReserves(contract, reservesAddress);
-    let readable = {balance: (resp["balance"]/ethers.utils.parseEther("1")).toString()};
+    let readable = {balance: (resp["balance"]/cashless.parseCoin("1")).toString()};
     console.log("reserves info:", JSON.stringify(readable));
 })();
