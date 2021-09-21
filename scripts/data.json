@@ -1,0 +1,51 @@
+{
+ "feedPubKey": "@11eoGBzqo+79IbzXDNFmF3LTgpb3F9Vkxh6g0USRxHo=.ed25519",
+ "feedHash": "3d5c74473909cf6e70fccebc313539f8366dfa2d3bb3288e163bc6afbafa8e1e",
+ "feedLast": "",
+ "feedSignature": "",
+ "feedDate": "2020-07-20T07:47:15+0000",
+ "contentType": {
+  "protocol": "cashless",
+  "version": "0.7",
+ },
+ "contentHeader": {
+  "network": "mainnet",
+  "cashless reserves address": "0x9c30cC03246443D6c9e211c298bBd94Ef889151E",
+  "cashless library address": "0xa3c93ea516d2c9f39901f7c4379b3b3a4b281ab8",
+  "messageType": "cashless"
+ },
+ "contentData": {
+  "from": {
+   "id": "e928f8ae-1210-480f-ab59-c9378c6a7a37",
+   "email": "utunga@gmail.com",
+   "common name": "Miles Thompson",
+   "reserves account": {
+    "address": "0x732e41c5761a1c81913e3afd8835be7eccffee18",
+    "alias": null,
+   }
+  },
+  "to": {
+   "id": null,
+   "email": "affordableorganics07@gmail.com",
+   "common name": "Nico Borren",
+   "reserves account": {
+    "address": null,
+    "alias": {
+     "name": "affordableorganics07@gmail.com",
+     "hashfunc": "SHA256"
+    }
+   }
+  },
+  "promise": {
+   "issuedDate": "2020-07-20T07:47:10+0000",
+   "memo": "Hey Nico,\nThanks for helping!\nYour help fixing our roof was very much appreciated.\nHere's my encoded promise to pay it forward ($200 within the month) ->",
+   "denomination": "NZD",
+   "amt": 200,
+   "vest": "2020-08-20T07:47:15Z",
+   "claimData": "0x0000000000000000000000000000000000000000000000000853a0d2313c00000000000000000000000000000000000000000000000000000000000000015180000000000000000000000000000000000000000000000000000000005f3e2a83000000000000000000000000000000000000000000000000000000005f8eb9d0000000000000000000000000732e41c5761a1c81913e3afd8835be7eccffee18000000000000000000000000000000000000000000000000000000000000000087bca611c58e3bc397f0994a4ea54a02d054c81f21f4901eb5788f1098b2a5df50c5d3adbd6cbb76befeb3ac902f8dee1c65a4ad26e9ae789e264d7c7016b0f300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+   "signature": {"v":28,"r":"0x99eb4c712d6060a07bc58224b713383e08a7675e431e061923fcd0c7174de0c8","s":"0x3d19f321ae8ea6786bf69e3a1109c60485f74716a08c7f094f19a75cc7db8e23"},
+   "tags": ["#roofing", "#kapitiCashlessSociety"]
+  }
+ }
+}
+
